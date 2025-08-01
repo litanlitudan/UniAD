@@ -38,22 +38,27 @@ The system consists of the following core components:
 ```
 ┌─────────────────┐     ┌───────────────────┐     ┌─────────────────────┐
 │ CommandLineUI   │────▶│ OperationTracer   │────▶│ TensorShapeRecorder │
+│ --show-shapes   │     │ Track modules     │     │ Shape: [B,C,H,W]    │
+│ --expand-modules│     │ Hook operations   │     │ Semantics tracking  │
 └─────────────────┘     └───────────────────┘     └─────────────────────┘
                                  │                            │
                                  ├──────────┐                 │
                                  ▼          ▼                 ▼
                          ┌─────────────┐ ┌──────────────┐ ┌───────────────┐
                          │MultiHeadTrace│ │TemporalTrace │ │ Trace Data    │
+                         │5 task heads │ │Queue shapes  │ │ w/ shapes     │
                          └─────────────┘ └──────────────┘ └───────────────┘
                                  │          │                 │
                                  ▼          ▼                 ▼
                          ┌───────────────┐ ┌──────────────┐ ┌──────────────┐
                          │ TraceAnalyzer │ │MemoryProfile│ │BEVFeatureTrace│
+                         │ Shape changes │ │ MB per tensor│ │[256,200,200]  │
                          └───────────────┘ └──────────────┘ └──────────────┘
                                  │                            ▲
                                  ▼                            │
                         ┌────────────────┐                    │
                         │ DataflowVisual │────────────────────┘
+                        │ Mermaid + shapes│
                         └────────────────┘
 ```
 
@@ -94,25 +99,37 @@ class OperationTracer:
 
 Records the shapes of tensors at each operation:
 
-- Input tensor shapes
-- Output tensor shapes
+- Input tensor shapes (with dimension semantics)
+- Output tensor shapes (with dimension semantics)
 - Parameter shapes
+- Shape transformations and dimension changes
 
 Handles various tensor containers (lists, tuples, dictionaries).
 
 #### Enhanced Data Structure for UniAD:
 
 ```python
-from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from dataclasses import dataclass, field
+from typing import List, Tuple, Optional, Dict
+
+@dataclass
+class TensorInfo:
+    """Detailed tensor information including shape and semantics"""
+    shape: Tuple[int, ...]
+    dtype: str = "float32"
+    device: str = "cuda"
+    semantic_dims: Optional[Dict[int, str]] = None  # e.g., {0: "batch", 1: "channels"}
+    
+    def __str__(self):
+        return f"[{','.join(map(str, self.shape))}]"
 
 @dataclass
 class TraceNode:
     # Basic information
     operation: str
     module_path: str
-    input_shapes: List[Tuple]
-    output_shapes: List[Tuple]
+    input_shapes: List[TensorInfo]
+    output_shapes: List[TensorInfo]
 
     # UniAD-specific fields
     task_head: Optional[str] = None  # track/seg/motion/occ/planning
@@ -131,6 +148,39 @@ class TraceNode:
     # Dependencies
     depends_on: List[str] = field(default_factory=list)
     feeds_into: List[str] = field(default_factory=list)
+    
+    # Shape transformation tracking
+    shape_transform: Optional[str] = None  # e.g., "flatten", "reshape", "permute"
+    
+    def get_shape_change_summary(self):
+        """Summarize how shapes change through this operation"""
+        if not self.input_shapes or not self.output_shapes:
+            return ""
+        
+        in_shape = self.input_shapes[0].shape
+        out_shape = self.output_shapes[0].shape
+        
+        # Detect common transformations
+        if len(in_shape) != len(out_shape):
+            return f"Reshape: {in_shape} → {out_shape}"
+        elif in_shape != out_shape:
+            return f"Transform: {in_shape} → {out_shape}"
+        else:
+            return f"Preserve: {in_shape}"
+```
+
+#### Shape Semantics for UniAD
+
+```python
+# Common dimension semantics in UniAD
+UNIAD_DIM_SEMANTICS = {
+    "image": {0: "batch", 1: "num_cams", 2: "channels", 3: "height", 4: "width"},
+    "bev": {0: "batch", 1: "channels", 2: "bev_h", 3: "bev_w"},
+    "query": {0: "batch", 1: "num_queries", 2: "embed_dims"},
+    "temporal": {0: "batch", 1: "num_frames", 2: "channels", 3: "height", 4: "width"},
+    "motion": {0: "batch", 1: "num_agents", 2: "num_modes", 3: "coords", 4: "timesteps"},
+    "planning": {0: "batch", 1: "timesteps", 2: "coords"},
+}
 ```
 
 ### 3.3 DataflowVisualizer
@@ -159,16 +209,20 @@ The visualizer supports two modes:
 ```python
 class DataflowVisualizer:
     def __init__(self, trace_data, visualization_mode='top-level', 
-                 expand_modules=None):
+                 expand_modules=None, show_shapes=True, shape_format='full'):
         """
         Args:
             trace_data: Collected trace data
             visualization_mode: 'top-level' or 'expanded'
             expand_modules: List of module names to expand (e.g., ['BEVFormer', 'TrackHead'])
+            show_shapes: Whether to display tensor shapes
+            shape_format: 'full' (all dims), 'compact' (abbreviated), 'semantic' (with labels)
         """
         self.trace_data = trace_data
         self.visualization_mode = visualization_mode
         self.expand_modules = expand_modules or []
+        self.show_shapes = show_shapes
+        self.shape_format = shape_format
         
     def generate_mermaid(self):
         if self.visualization_mode == 'top-level':
@@ -176,25 +230,73 @@ class DataflowVisualizer:
         else:
             return self._generate_expanded_view()
     
+    def _format_tensor_shape(self, tensor_info, context=None):
+        """Format tensor shape for display"""
+        if not self.show_shapes:
+            return ""
+        
+        shape = tensor_info.shape
+        
+        if self.shape_format == 'compact':
+            # Compact format: [B, C, H, W] → [1, 256, 200, 200]
+            return f"[{','.join(map(str, shape))}]"
+        
+        elif self.shape_format == 'semantic' and tensor_info.semantic_dims:
+            # Semantic format: [batch=1, channels=256, bev_h=200, bev_w=200]
+            parts = []
+            for i, dim in enumerate(shape):
+                label = tensor_info.semantic_dims.get(i, f"dim{i}")
+                parts.append(f"{label}={dim}")
+            return f"[{', '.join(parts)}]"
+        
+        else:  # 'full' format
+            # Full format with context
+            shape_str = f"[{', '.join(map(str, shape))}]"
+            if context:
+                shape_str += f" ({context})"
+            return shape_str
+    
+    def _generate_module_node(self, module_name, module_info):
+        """Generate node text for a module"""
+        lines = [module_name]
+        
+        if self.show_shapes and module_info.get('input_shape'):
+            lines.append(f"Input: {self._format_tensor_shape(module_info['input_shape'])}")
+        
+        if self.show_shapes and module_info.get('output_shape'):
+            lines.append(f"Output: {self._format_tensor_shape(module_info['output_shape'])}")
+        
+        if module_info.get('memory'):
+            lines.append(f"Memory: {module_info['memory']:.1f}GB")
+        
+        if module_info.get('extra_info'):
+            lines.append(module_info['extra_info'])
+        
+        return "<br/>".join(lines)
+    
     def _generate_top_level_view(self):
         """
         Generate a high-level view showing only major modules:
         - BEVFormer Encoder
         - Task Heads (Track, Seg, Motion, Occ, Planning)
         - Major connections between modules
+        - Aggregated tensor shapes
         """
         # Group operations by top-level module
         # Show aggregated information (total memory, FLOPs, etc.)
+        # Display input/output shapes for each major module
         pass
     
     def _generate_expanded_view(self):
         """
         Generate detailed view for specified modules:
         - All operations within the module
-        - Detailed tensor shapes
+        - Detailed tensor shapes for each operation
+        - Shape transformations between operations
         - Memory usage per operation
         """
         # Expand specified modules while keeping others collapsed
+        # Show shape changes through the module
         pass
 ```
 
@@ -203,16 +305,16 @@ class DataflowVisualizer:
 **Top-Level View (Default)**:
 ```mermaid
 graph TB
-    Input[Multi-View Images<br/>6x3x928x1600] --> BEVFormer[BEVFormer Encoder<br/>Memory: 15.2GB<br/>6 layers]
-    BEVFormer --> BEV[BEV Features<br/>256x200x200]
+    Input["Multi-View Images<br/>Shape: (1, 6, 3, 928, 1600)"] --> BEVFormer["BEVFormer Encoder<br/>In: (1, 6, 3, 928, 1600)<br/>Out: (1, 256, 200, 200)<br/>Memory: 15.2GB<br/>6 layers"]
+    BEVFormer --> BEV["BEV Features<br/>Shape: (1, 256, 200, 200)"]
     
-    BEV --> TrackHead[Track Head<br/>Memory: 8GB<br/>900 queries]
-    BEV --> SegHead[Seg Head<br/>Memory: 5GB]
+    BEV --> TrackHead["Track Head<br/>In: (1, 256, 200, 200)<br/>Out: (1, 900, 266)<br/>Memory: 8GB<br/>900 queries"]
+    BEV --> SegHead["Seg Head<br/>In: (1, 256, 200, 200)<br/>Out: (1, 3, 200, 200)<br/>Memory: 5GB"]
     
-    TrackHead --> MotionHead[Motion Head<br/>Memory: 4GB]
-    TrackHead --> OccHead[Occ Head<br/>Memory: 6GB]
+    TrackHead --> MotionHead["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>Memory: 4GB"]
+    TrackHead --> OccHead["Occ Head<br/>In: (1, N, 256)<br/>Out: (1, 200, 200, 5)<br/>Memory: 6GB"]
     
-    MotionHead --> PlanHead[Planning Head<br/>Memory: 3GB]
+    MotionHead --> PlanHead["Planning Head<br/>In: Multiple tensors<br/>Out: (1, 6, 2)<br/>Memory: 3GB"]
     OccHead --> PlanHead
 ```
 
@@ -220,20 +322,20 @@ graph TB
 ```mermaid
 graph TB
     subgraph "BEVFormer Encoder (Expanded)"
-        Input[Multi-View Images] --> ResNet[ResNet-101<br/>Frozen]
-        ResNet --> FPN[FPN<br/>4 levels]
+        Input["Multi-View Images<br/>(1, 6, 3, 928, 1600)"] --> ResNet["ResNet-101<br/>In: (1, 6, 3, 928, 1600)<br/>Out: (1, 6, 2048, 29, 50)<br/>Frozen"]
+        ResNet --> FPN["FPN<br/>In: (1, 6, 2048, 29, 50)<br/>Out: 4 levels<br/>(1, 6, 256, H, W)"]
         
         subgraph "Layer 1"
-            FPN --> TSA1[Temporal Self-Attention<br/>8 heads, 4 points]
-            TSA1 --> SCA1[Spatial Cross-Attention<br/>6 cameras]
-            SCA1 --> FFN1[Feed-Forward<br/>2048 hidden]
+            FPN --> TSA1["Temporal Self-Attention<br/>In/Out: (1, 40000, 256)<br/>8 heads, 4 points"]
+            TSA1 --> SCA1["Spatial Cross-Attention<br/>Query: (1, 40000, 256)<br/>Key/Value: (6, H×W, 256)<br/>Out: (1, 40000, 256)"]
+            SCA1 --> FFN1["Feed-Forward<br/>In: (1, 40000, 256)<br/>Hidden: (1, 40000, 2048)<br/>Out: (1, 40000, 256)"]
         end
         
         subgraph "Layer 2-6"
-            FFN1 --> Layers[Layers 2-6<br/>Similar structure]
+            FFN1 --> Layers["Layers 2-6<br/>In/Out: (1, 40000, 256)<br/>Similar structure"]
         end
         
-        Layers --> BEVOut[BEV Output<br/>256x200x200]
+        Layers --> BEVOut["BEV Output<br/>Reshape: (1, 40000, 256)<br/>→ (1, 256, 200, 200)"]
     end
 ```
 
@@ -306,6 +408,39 @@ python tools/analysis_tools/trace_pytorch_ops.py \
 
 # Memory-based expansion
 --expand-heavy-modules  # Auto-expand modules using >1GB memory
+```
+
+#### 3.5.3 Tensor Shape Display Options
+
+```bash
+# Shape display control
+--show-shapes              # Enable shape display (default: true)
+--no-shapes               # Disable shape display
+--shape-format full       # Full format: [1, 256, 200, 200]
+--shape-format compact    # Compact: [1,256,200,200]
+--shape-format semantic   # Semantic: [batch=1, channels=256, bev_h=200, bev_w=200]
+
+# Combined examples
+python trace_pytorch_ops.py \
+    --config uniad.py \
+    --visualization-mode expanded \
+    --expand-modules TrackHead \
+    --shape-format semantic \
+    --output track_head_shapes.md
+
+# Focus on shape transformations
+python trace_pytorch_ops.py \
+    --config uniad.py \
+    --track-shape-changes \
+    --highlight-reshapes \
+    --output shape_analysis.md
+
+# Memory and shape correlation
+python trace_pytorch_ops.py \
+    --config uniad.py \
+    --show-shapes \
+    --annotate-memory-per-element \
+    --output memory_shape_analysis.md
 ```
 
 ### 3.6 UniAD-Specific Components
@@ -425,43 +560,49 @@ class MemoryProfiler:
 python tools/analysis_tools/trace_pytorch_ops.py \
     --config projects/configs/stage1_track_map/base_track_map.py \
     --checkpoint ckpts/uniad_base_track_map.pth \
-    --stage 1
+    --stage 1 \
+    --show-shapes
 
 # Trace UniAD Stage 2 (end-to-end)
 python tools/analysis_tools/trace_pytorch_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
     --checkpoint ckpts/uniad_base_e2e.pth \
-    --stage 2
+    --stage 2 \
+    --shape-format semantic
 ```
 
 ### 5.2 Advanced Usage
 
 ```bash
-# Trace specific task heads with memory profiling
+# Trace specific task heads with memory profiling and shapes
 python tools/analysis_tools/trace_pytorch_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
     --checkpoint ckpts/uniad_base_e2e.pth \
     --task-heads track,motion,planning \
     --temporal-frames 3 \
     --memory-profile \
+    --show-shapes \
+    --shape-format semantic \
     --output uniad_trace_analysis.md
 
-# Focus on BEV operations
+# Focus on BEV operations with shape tracking
 python tools/analysis_tools/trace_pytorch_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
     --checkpoint ckpts/uniad_base_e2e.pth \
     --bev-focus \
     --filter-ops BEVFormer,BEVEncoder,BEVDecoder \
     --visualize-temporal \
+    --track-shape-changes \
     --output bev_flow.md
 
-# Compare Stage 1 and Stage 2
+# Compare Stage 1 and Stage 2 with shape analysis
 python tools/analysis_tools/trace_pytorch_ops.py \
     --compare-stages \
     --stage1-config projects/configs/stage1_track_map/base_track_map.py \
     --stage1-ckpt ckpts/uniad_base_track_map.pth \
     --stage2-config projects/configs/stage2_e2e/base_e2e.py \
     --stage2-ckpt ckpts/uniad_base_e2e.pth \
+    --show-shapes \
     --output stage_comparison.md
 ```
 
@@ -497,20 +638,22 @@ python tools/analysis_tools/trace_pytorch_ops.py \
 
 ```mermaid
 graph TB
-    %% Default view showing only major modules
-    Input[Multi-View Images<br/>6x3x928x1600<br/>Memory: 0.1GB] --> Backbone[ResNet-101 + FPN<br/>Frozen: Stage 2<br/>Memory: 2.5GB]
+    %% Default view showing only major modules with tensor shapes
+    Input["Multi-View Images<br/>Input: (1, 6, 3, 928, 1600)<br/>Memory: 0.1GB"] --> Backbone["ResNet-101 + FPN<br/>Output: (1, 6, 256, 116, 200)<br/>Frozen: Stage 2<br/>Memory: 2.5GB"]
     
-    Backbone --> BEVEncoder[BEVFormer Encoder<br/>6 layers<br/>Memory: 15.2GB]
+    Backbone --> BEVEncoder["BEVFormer Encoder<br/>Input: (1, 6, 256, H, W) multi-scale<br/>Output: (1, 256, 200, 200)<br/>6 layers<br/>Memory: 15.2GB"]
     
-    BEVEncoder --> BEVFeatures[BEV Features<br/>256x200x200<br/>Memory: 0.4GB]
+    BEVEncoder --> BEVFeatures["BEV Features<br/>Shape: (1, 256, 200, 200)<br/>Memory: 0.4GB"]
     
-    BEVFeatures --> TrackHead[Track Head<br/>900 queries<br/>Memory: 8GB]
-    BEVFeatures --> SegHead[Seg Head<br/>3 classes<br/>Memory: 5GB]
+    BEVFeatures --> TrackHead["Track Head<br/>Input: (1, 256, 200, 200)<br/>Output: (1, 900, 10+256)<br/>900 queries<br/>Memory: 8GB"]
     
-    TrackHead --> MotionHead[Motion Head<br/>6 modes<br/>Memory: 4GB]
-    TrackHead --> OccHead[Occ Head<br/>Future: 3s<br/>Memory: 6GB]
+    BEVFeatures --> SegHead["Seg Head<br/>Input: (1, 256, 200, 200)<br/>Output: (1, 3, 200, 200)<br/>3 classes<br/>Memory: 5GB"]
     
-    MotionHead --> PlanHead[Planning Head<br/>Trajectory: 3s<br/>Memory: 3GB]
+    TrackHead --> MotionHead["Motion Head<br/>Input: (1, N, 256)<br/>Output: (1, N, 6, 2, 6)<br/>6 modes, 6 timesteps<br/>Memory: 4GB"]
+    
+    TrackHead --> OccHead["Occ Head<br/>Input: (1, N, 256)<br/>Output: (1, 200, 200, 5)<br/>Future: 3s<br/>Memory: 6GB"]
+    
+    MotionHead --> PlanHead["Planning Head<br/>Input: Motion(1,N,6,2,6) + Occ(1,200,200,5)<br/>Output: (1, 6, 2)<br/>Trajectory: 3s<br/>Memory: 3GB"]
     OccHead --> PlanHead
     
     %% Style for different module types
@@ -525,27 +668,27 @@ graph TB
 
 ```mermaid
 graph TB
-    %% Expanded view of Track Head module
-    BEVFeatures[BEV Features<br/>256x200x200] --> TrackTransformer
+    %% Expanded view of Track Head module with tensor shapes
+    BEVFeatures["BEV Features<br/>Shape: (1, 256, 200, 200)"] --> TrackTransformer
     
     subgraph "Track Head (Expanded)"
-        TrackTransformer[Track Transformer<br/>6 layers]
+        TrackTransformer["Track Transformer<br/>Input: (1, 256, 200, 200)<br/>6 layers"]
         
         subgraph "Decoder Layer 1"
-            TrackTransformer --> SelfAttn1[Self-Attention<br/>900 queries]
-            SelfAttn1 --> CrossAttn1[Cross-Attention<br/>with BEV]
-            CrossAttn1 --> FFN1[FFN<br/>2048 hidden]
+            TrackTransformer --> SelfAttn1["Self-Attention<br/>Input: (1, 900, 256)<br/>Output: (1, 900, 256)<br/>8 heads"]
+            SelfAttn1 --> CrossAttn1["Cross-Attention<br/>Query: (1, 900, 256)<br/>Key/Value: (1, 40000, 256)<br/>Output: (1, 900, 256)"]
+            CrossAttn1 --> FFN1["FFN<br/>Input: (1, 900, 256)<br/>Hidden: (1, 900, 2048)<br/>Output: (1, 900, 256)"]
         end
         
-        FFN1 --> MoreLayers[Layers 2-6<br/>Similar structure]
+        FFN1 --> MoreLayers["Layers 2-6<br/>Input/Output: (1, 900, 256)<br/>Similar structure"]
         
-        MoreLayers --> ClassHead[Classification<br/>10 classes]
-        MoreLayers --> BoxHead[Box Regression<br/>3D boxes]
-        MoreLayers --> TrackHead[Tracking<br/>Instance IDs]
+        MoreLayers --> ClassHead["Classification<br/>Input: (1, 900, 256)<br/>Output: (1, 900, 10)<br/>10 classes"]
+        MoreLayers --> BoxHead["Box Regression<br/>Input: (1, 900, 256)<br/>Output: (1, 900, 10)<br/>3D boxes"]
+        MoreLayers --> TrackingHead["Tracking<br/>Input: (1, 900, 256)<br/>Output: (1, 900, 256)<br/>Instance embeddings"]
         
-        ClassHead --> NMS[NMS<br/>Threshold: 0.2]
+        ClassHead --> NMS["NMS<br/>Input: (1, 900, 10+10)<br/>Output: (1, N, 10+10)<br/>N ≤ 300"]
         BoxHead --> NMS
-        TrackHead --> TrackOutput[Track Results<br/>Memory: 0.5GB]
+        TrackingHead --> TrackOutput["Track Results<br/>Shape: (1, N, 10+10+256)<br/>Memory: 0.5GB"]
         NMS --> TrackOutput
     end
 ```
@@ -554,25 +697,25 @@ graph TB
 
 ```mermaid
 graph TB
-    %% Expanded view of Planning Head with dependencies
+    %% Expanded view of Planning Head with tensor shapes
     subgraph "Inputs to Planning"
-        TrackResults[Track Results<br/>Objects + Trajectories]
-        MotionPred[Motion Predictions<br/>6 modes per agent]
-        OccPred[Occupancy Predictions<br/>Future 3s]
+        TrackResults["Track Results<br/>Shape: (1, N, 266)<br/>N detected objects"]
+        MotionPred["Motion Predictions<br/>Shape: (1, N, 6, 2, 6)<br/>6 modes × 6 timesteps"]
+        OccPred["Occupancy Predictions<br/>Shape: (1, 200, 200, 5)<br/>5 future frames"]
     end
     
     subgraph "Planning Head (Expanded)"
-        TrackResults --> FeatureAgg[Feature Aggregation<br/>Concat + MLP]
+        TrackResults --> FeatureAgg["Feature Aggregation<br/>Input: Track(1,N,266) + Motion(1,N,6,2,6)<br/>+ Occ(1,200,200,5)<br/>Output: (1, 256)"]
         MotionPred --> FeatureAgg
         OccPred --> FeatureAgg
         
-        FeatureAgg --> PlanningGRU[Planning GRU<br/>Hidden: 256]
+        FeatureAgg --> PlanningGRU["Planning GRU<br/>Input: (1, 1, 256)<br/>Hidden: (1, 1, 256)<br/>6 unrolls"]
         
-        PlanningGRU --> TrajDecoder[Trajectory Decoder<br/>6 timesteps]
+        PlanningGRU --> TrajDecoder["Trajectory Decoder<br/>Input: (1, 6, 256)<br/>Output: (1, 6, 2)<br/>6 timesteps × (x,y)"]
         
-        TrajDecoder --> CollisionCheck[Collision Checker<br/>Safety validation]
+        TrajDecoder --> CollisionCheck["Collision Checker<br/>Input: Traj(1,6,2) + Occ(1,200,200,5)<br/>Output: (1, 6, 3)<br/>(x,y,collision_prob)"]
         
-        CollisionCheck --> FinalTraj[Final Trajectory<br/>6 waypoints @ 0.5s]
+        CollisionCheck --> FinalTraj["Final Trajectory<br/>Shape: (1, 6, 2)<br/>6 waypoints @ 0.5s"]
     end
     
     style FeatureAgg fill:#ffeecc,stroke:#333,stroke-width:2px
@@ -584,37 +727,144 @@ graph TB
 
 ```mermaid
 graph TB
-    %% Auto-expanded view showing modules >5GB memory
-    Input[Input] --> Backbone[Backbone<br/>2.5GB]
+    %% Auto-expanded view showing modules >5GB memory with tensor shapes
+    Input["Input<br/>Shape: (1, 6, 3, 928, 1600)"] --> Backbone["Backbone<br/>Output: (1, 6, 256, H, W)<br/>2.5GB"]
     
     Backbone --> BEVEncoder
     
     subgraph "BEVFormer Encoder (15.2GB) - Expanded"
-        BEVEncoder[BEVFormer Entry] --> TSA[Temporal Self-Attn<br/>6 layers<br/>Memory: 7GB]
-        TSA --> SCA[Spatial Cross-Attn<br/>6 layers<br/>Memory: 8.2GB]
+        BEVEncoder["BEVFormer Entry<br/>Input: (1, 6, 256, H, W)"] --> TSA["Temporal Self-Attn<br/>Input: (1, 40000, 256)<br/>Output: (1, 40000, 256)<br/>6 layers<br/>Memory: 7GB"]
+        TSA --> SCA["Spatial Cross-Attn<br/>Query: (1, 40000, 256)<br/>Key/Value: (6, H×W, 256)<br/>Output: (1, 40000, 256)<br/>6 layers<br/>Memory: 8.2GB"]
     end
     
-    SCA --> BEVFeatures[BEV Features]
+    SCA --> BEVFeatures["BEV Features<br/>Shape: (1, 256, 200, 200)"]
     
     subgraph "Track Head (8GB) - Expanded"
-        BEVFeatures --> TrackDec[Track Decoder<br/>Memory: 5GB]
-        TrackDec --> TrackPost[Post-processing<br/>Memory: 3GB]
+        BEVFeatures --> TrackDec["Track Decoder<br/>Input: (1, 256, 200, 200)<br/>Output: (1, 900, 256)<br/>Memory: 5GB"]
+        TrackDec --> TrackPost["Post-processing<br/>Input: (1, 900, 266)<br/>Output: (1, N, 266)<br/>Memory: 3GB"]
     end
     
-    TrackPost --> SmallModules[Other Modules<br/>(< 5GB each)]
+    TrackPost --> SmallModules["Other Modules<br/>(< 5GB each)"]
     
     subgraph "Occ Head (6GB) - Expanded"
-        BEVFeatures --> OccConv[Occ Conv Layers<br/>Memory: 4GB]
-        OccConv --> OccPredict[Occ Prediction<br/>Memory: 2GB]
+        BEVFeatures --> OccConv["Occ Conv Layers<br/>Input: (1, 256, 200, 200)<br/>Output: (1, 128, 200, 200)<br/>Memory: 4GB"]
+        OccConv --> OccPredict["Occ Prediction<br/>Input: (1, 128, 200, 200)<br/>Output: (1, 200, 200, 5)<br/>Memory: 2GB"]
     end
     
-    %% Collapsed modules (< 5GB)
-    BEVFeatures --> SegHead[Seg Head<br/>5GB]
-    SmallModules --> MotionHead[Motion Head<br/>4GB]
-    SmallModules --> PlanHead[Plan Head<br/>3GB]
+    %% Collapsed modules (< 5GB) with shapes
+    BEVFeatures --> SegHead["Seg Head<br/>In: (1, 256, 200, 200)<br/>Out: (1, 3, 200, 200)<br/>5GB"]
+    SmallModules --> MotionHead["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>4GB"]
+    SmallModules --> PlanHead["Plan Head<br/>In: Multiple<br/>Out: (1, 6, 2)<br/>3GB"]
 ```
 
-### 7.2 Memory Usage Heatmap
+### 7.5 Shape Transformation View
+
+```mermaid
+graph TB
+    %% Shape transformations through BEVFormer encoder
+    subgraph "BEVFormer Shape Transformations"
+        Input["Multi-View Images<br/>(1, 6, 3, 928, 1600)"]
+        
+        Input --> Conv1["ResNet Conv1<br/>Transform: (1,6,3,928,1600)<br/>→ (1,6,64,464,800)"]
+        
+        Conv1 --> MaxPool["MaxPool<br/>Transform: (1,6,64,464,800)<br/>→ (1,6,64,232,400)"]
+        
+        MaxPool --> ResBlocks["ResNet Blocks<br/>Transform: (1,6,64,232,400)<br/>→ (1,6,2048,29,50)"]
+        
+        ResBlocks --> FPN["FPN<br/>Multi-scale outputs:<br/>(1,6,256,29,50)<br/>(1,6,256,58,100)<br/>(1,6,256,116,200)<br/>(1,6,256,232,400)"]
+        
+        FPN --> Flatten["Flatten & Concat<br/>Transform: 4 scales<br/>→ (1, 120000, 256)"]
+        
+        Flatten --> BEVQuery["BEV Queries<br/>Transform: (1, 120000, 256)<br/>→ (1, 40000, 256)"]
+        
+        BEVQuery --> TSA["Temporal Self-Attn<br/>Preserve: (1, 40000, 256)"]
+        
+        TSA --> SCA["Spatial Cross-Attn<br/>Preserve: (1, 40000, 256)"]
+        
+        SCA --> Reshape["Reshape to Grid<br/>Transform: (1, 40000, 256)<br/>→ (1, 256, 200, 200)"]
+        
+        style Input fill:#e1e1e1
+        style Reshape fill:#99ff99
+        style FPN fill:#ffcc99
+    end
+```
+
+### 7.6 Complete UniAD Tensor Flow
+
+```mermaid
+graph TB
+    %% Complete tensor shape flow through UniAD pipeline
+    subgraph "Input Processing"
+        Img["6 Camera Images<br/>(1, 6, 3, 928, 1600)<br/>13.4 MB each"]
+        CAN["CAN Bus Data<br/>(1, 18)<br/>Ego motion"]
+    end
+    
+    subgraph "Feature Extraction"
+        Img --> Backbone["ResNet-101<br/>Transform: (1,6,3,928,1600)<br/>→ (1,6,2048,29,50)"]
+        Backbone --> FPN["FPN<br/>Multi-scale:<br/>(1,6,256,29,50)<br/>(1,6,256,58,100)<br/>(1,6,256,116,200)<br/>(1,6,256,232,400)"]
+    end
+    
+    subgraph "BEV Generation"
+        FPN --> BEVEnc["BEVFormer<br/>6 layers<br/>(1,40000,256)"]
+        CAN --> BEVEnc
+        BEVEnc --> BEVGrid["BEV Grid<br/>(1,256,200,200)<br/>39.1 MB"]
+    end
+    
+    subgraph "Perception Tasks"
+        BEVGrid --> Track["Track Head<br/>Output: (1,N,266)<br/>N objects"]
+        BEVGrid --> Seg["Seg Head<br/>Output: (1,3,200,200)<br/>3 classes"]
+    end
+    
+    subgraph "Prediction Tasks"
+        Track --> Motion["Motion Head<br/>Input: (1,N,266)<br/>Output: (1,N,6,2,6)<br/>6 modes"]
+        Track --> Occ["Occ Head<br/>Input: (1,N,266)<br/>Output: (1,200,200,5)<br/>5 frames"]
+    end
+    
+    subgraph "Planning Task"
+        Motion --> Plan["Planning Head<br/>Inputs: Multiple<br/>Output: (1,6,2)<br/>3s trajectory"]
+        Occ --> Plan
+        Track --> Plan
+    end
+    
+    style Img fill:#e1e1e1
+    style BEVGrid fill:#ffcc99
+    style Plan fill:#99ff99
+```
+
+### 7.7 Temporal Shape Flow
+
+```mermaid
+graph LR
+    %% Temporal shape flow across frames
+    subgraph "Frame t-2"
+        Img_t2["Images<br/>(1,6,3,928,1600)"] --> BEV_t2["BEV<br/>(1,256,200,200)"]
+    end
+    
+    subgraph "Frame t-1"
+        Img_t1["Images<br/>(1,6,3,928,1600)"] --> BEV_t1["BEV<br/>(1,256,200,200)"]
+        BEV_t2 -.->|Ego-motion<br/>compensation| BEV_t1
+    end
+    
+    subgraph "Frame t (current)"
+        Img_t["Images<br/>(1,6,3,928,1600)"] --> BEV_t["BEV<br/>(1,256,200,200)"]
+        BEV_t1 -.->|Ego-motion<br/>compensation| BEV_t
+    end
+    
+    subgraph "Temporal Aggregation"
+        BEV_t2 --> Queue["BEV Queue<br/>(1,3,256,200,200)<br/>Stage1: 5 frames<br/>Stage2: 3 frames"]
+        BEV_t1 --> Queue
+        BEV_t --> Queue
+        
+        Queue --> TSA["Temporal Self-Attention<br/>Input: (1,40000,256)×3<br/>Output: (1,40000,256)"]
+    end
+    
+    TSA --> Final["Temporally Enhanced BEV<br/>(1,256,200,200)"]
+    
+    style BEV_t fill:#99ff99
+    style TSA fill:#ffcc99
+```
+
+### 7.8 Memory Usage Heatmap
 
 ```
 Operation               | Memory (GB) | Percentage | Visual

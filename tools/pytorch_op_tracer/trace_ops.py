@@ -43,6 +43,36 @@ def main():
     parser.add_argument('--max-nodes', type=int, default=50, 
                         help='Maximum nodes to visualize')
     
+    # Visualization options
+    parser.add_argument('--visualization-mode', type=str, default='top-level',
+                        choices=['top-level', 'expanded', 'full'],
+                        help='Visualization mode')
+    parser.add_argument('--expand-modules', type=str, nargs='+',
+                        help='Modules to expand (e.g., BEVFormer,TrackHead)')
+    parser.add_argument('--expand-pattern', type=str,
+                        help='Pattern for module expansion (e.g., "*Head", "BEV*")')
+    parser.add_argument('--expand-depth', type=int, default=2,
+                        help='Depth to expand modules')
+    parser.add_argument('--expand-heavy-modules', action='store_true',
+                        help='Auto-expand modules using >1GB memory')
+    parser.add_argument('--memory-threshold', type=float, default=1000.0,
+                        help='Memory threshold in MB for auto-expansion')
+    
+    # Shape display options
+    parser.add_argument('--show-shapes', action='store_true', default=True,
+                        help='Show tensor shapes (default: True)')
+    parser.add_argument('--no-shapes', dest='show_shapes', action='store_false',
+                        help='Disable tensor shape display')
+    parser.add_argument('--shape-format', type=str, default='full',
+                        choices=['full', 'compact', 'semantic'],
+                        help='Tensor shape display format')
+    parser.add_argument('--track-shape-changes', action='store_true',
+                        help='Track and highlight shape transformations')
+    parser.add_argument('--highlight-reshapes', action='store_true',
+                        help='Highlight reshape operations')
+    parser.add_argument('--annotate-memory-per-element', action='store_true',
+                        help='Show memory usage per tensor element')
+    
     # Analysis options
     parser.add_argument('--memory-profile', action='store_true', 
                         help='Enable memory profiling')
@@ -124,7 +154,28 @@ def main():
     
     # Generate visualizations
     print("Generating visualizations...")
-    visualizer = DataflowVisualizer(max_nodes=args.max_nodes)
+    
+    # Process module expansion patterns
+    expand_modules = args.expand_modules or []
+    if args.expand_pattern and model:
+        # Use hierarchy analyzer to find matching modules
+        from core import ModuleHierarchyAnalyzer
+        hierarchy_analyzer = ModuleHierarchyAnalyzer(model)
+        pattern_matches = hierarchy_analyzer.get_modules_by_pattern(args.expand_pattern)
+        expand_modules.extend(pattern_matches)
+        print(f"Pattern '{args.expand_pattern}' matched {len(pattern_matches)} modules")
+    
+    visualizer = DataflowVisualizer(
+        max_nodes=args.max_nodes,
+        visualization_mode=args.visualization_mode,
+        expand_modules=expand_modules,
+        expand_heavy_modules=args.expand_heavy_modules,
+        show_shapes=args.show_shapes,
+        shape_format=args.shape_format,
+        track_shape_changes=args.track_shape_changes,
+        model=model if not args.test_mode else None,
+        memory_threshold=args.memory_threshold
+    )
     mermaid_diagram = visualizer.generate_mermaid(
         trace_nodes, 
         analysis['head_analysis'],
@@ -175,6 +226,20 @@ def main():
         if args.memory_profile:
             f.write("## Memory Profile\n\n")
             f.write(memory_heatmap)
+            f.write("\n\n")
+        
+        # Shape Transformation Analysis
+        if args.track_shape_changes or args.highlight_reshapes:
+            f.write("## Shape Transformation Analysis\n\n")
+            shape_report = visualizer.generate_shape_transformation_report(trace_nodes)
+            f.write(shape_report)
+            f.write("\n\n")
+        
+        # Memory-based Auto-expansion View
+        if args.expand_heavy_modules:
+            f.write("## Memory-Based Module Expansion\n\n")
+            memory_view = visualizer.generate_memory_based_view(trace_nodes, args.memory_threshold)
+            f.write(memory_view)
             f.write("\n\n")
     
     # Export JSON if requested

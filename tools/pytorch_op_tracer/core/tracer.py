@@ -66,6 +66,11 @@ class OperationTracer:
             input_shapes = TensorShapeRecorder.extract_shapes(input)
             output_shapes = TensorShapeRecorder.extract_shapes(output)
             
+            # Detect shape transformation
+            shape_transform = TensorShapeRecorder.detect_shape_transformation(
+                input_shapes, output_shapes
+            )
+            
             # Create trace node
             node = TraceNode(
                 operation=module.__class__.__name__,
@@ -76,14 +81,15 @@ class OperationTracer:
                 is_bev_operation='bev' in name.lower(),
                 memory_usage=TensorShapeRecorder.estimate_memory(output_shapes),
                 compute_time=(time.time() - start_time) * 1000,
-                is_frozen=not any(p.requires_grad for p in module.parameters())
+                is_frozen=not any(p.requires_grad for p in module.parameters()),
+                shape_transform=shape_transform
             )
             
             # Check for BEV grid size
             if node.is_bev_operation and output_shapes:
-                for shape in output_shapes:
-                    if len(shape) >= 4:  # B, C, H, W
-                        node.bev_grid_size = (shape[-2], shape[-1])
+                for tensor_info in output_shapes:
+                    if len(tensor_info.shape) >= 4:  # B, C, H, W
+                        node.bev_grid_size = (tensor_info.shape[-2], tensor_info.shape[-1])
                         break
             
             self.trace_nodes.append(node)

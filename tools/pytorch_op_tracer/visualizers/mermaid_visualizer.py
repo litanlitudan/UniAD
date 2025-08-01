@@ -51,11 +51,17 @@ class DataflowVisualizer:
             return ""
             
         shape = tensor_info.shape if hasattr(tensor_info, 'shape') else tensor_info
+        dtype = ""
+        
+        # Extract dtype if available and show_dtype is enabled
+        if self.state.show_dtype and hasattr(tensor_info, 'dtype'):
+            dtype_str = tensor_info.dtype.replace('float', 'fp').replace('bfloat', 'bf')
+            dtype = f"@{dtype_str}"
         
         if self.state.shape_format == 'compact':
-            # Compact format: (B,C,H,W)
+            # Compact format: (B,C,H,W)@dtype
             dims = ','.join(map(str, shape))
-            return f"({dims})"
+            return f"({dims}){dtype}"
         elif self.state.shape_format == 'semantic' and hasattr(tensor_info, 'semantic_dims') and tensor_info.semantic_dims:
             # Semantic format with dimension labels
             dims = []
@@ -65,10 +71,10 @@ class DataflowVisualizer:
                     dims.append(f"{label}={dim}")
                 else:
                     dims.append(str(dim))
-            return f"[{', '.join(dims)}]"
+            return f"[{', '.join(dims)}]{dtype}"
         else:
             # Full format
-            return f"[{' × '.join(map(str, shape))}]"
+            return f"[{' × '.join(map(str, shape))}]{dtype}"
     
     def _build_module_hierarchy(self, trace_nodes: List[TraceNode]) -> Dict[str, List[TraceNode]]:
         """Build module hierarchy from trace nodes"""

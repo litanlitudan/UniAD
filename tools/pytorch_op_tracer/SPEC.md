@@ -114,14 +114,44 @@ from typing import List, Tuple, Optional, Dict
 
 @dataclass
 class TensorInfo:
-    """Detailed tensor information including shape and semantics"""
+    """Detailed tensor information including shape, dtype, and semantics"""
     shape: Tuple[int, ...]
-    dtype: str = "float32"
+    dtype: str = "float32"  # float32, float16, bfloat16, int8, int32, bool, etc.
     device: str = "cuda"
     semantic_dims: Optional[Dict[int, str]] = None  # e.g., {0: "batch", 1: "channels"}
+    requires_grad: bool = True
+    is_quantized: bool = False
+    memory_bytes: Optional[int] = None  # Actual memory usage considering dtype
     
     def __str__(self):
-        return f"[{','.join(map(str, self.shape))}]"
+        dtype_str = self.dtype.replace('float', 'fp').replace('bfloat', 'bf')
+        return f"[{','.join(map(str, self.shape))}]@{dtype_str}"
+    
+    def memory_size(self) -> int:
+        """Calculate memory size in bytes based on shape and dtype"""
+        if self.memory_bytes is not None:
+            return self.memory_bytes
+        
+        # Calculate based on dtype
+        dtype_bytes = {
+            'float32': 4, 'float': 4, 'fp32': 4,
+            'float16': 2, 'half': 2, 'fp16': 2,
+            'bfloat16': 2, 'bf16': 2,
+            'float64': 8, 'double': 8, 'fp64': 8,
+            'int64': 8, 'long': 8,
+            'int32': 4, 'int': 4,
+            'int16': 2, 'short': 2,
+            'int8': 1, 'byte': 1,
+            'uint8': 1,
+            'bool': 1
+        }
+        
+        bytes_per_element = dtype_bytes.get(self.dtype.lower(), 4)
+        num_elements = 1
+        for dim in self.shape:
+            num_elements *= dim
+        
+        return num_elements * bytes_per_element
 
 @dataclass
 class TraceNode:
@@ -181,6 +211,89 @@ UNIAD_DIM_SEMANTICS = {
     "motion": {0: "batch", 1: "num_agents", 2: "num_modes", 3: "coords", 4: "timesteps"},
     "planning": {0: "batch", 1: "timesteps", 2: "coords"},
 }
+```
+
+#### Data Type (dtype) Support
+
+The tracer supports comprehensive data type tracking for all tensors:
+
+```python
+# Supported data types in PyTorch
+PYTORCH_DTYPES = {
+    # Floating point types
+    'float32': {'bytes': 4, 'alias': ['fp32', 'float']},
+    'float16': {'bytes': 2, 'alias': ['fp16', 'half']},
+    'bfloat16': {'bytes': 2, 'alias': ['bf16']},
+    'float64': {'bytes': 8, 'alias': ['fp64', 'double']},
+    
+    # Integer types
+    'int64': {'bytes': 8, 'alias': ['long']},
+    'int32': {'bytes': 4, 'alias': ['int']},
+    'int16': {'bytes': 2, 'alias': ['short']},
+    'int8': {'bytes': 1, 'alias': ['byte']},
+    'uint8': {'bytes': 1, 'alias': []},
+    
+    # Other types
+    'bool': {'bytes': 1, 'alias': []},
+    'complex64': {'bytes': 8, 'alias': []},
+    'complex128': {'bytes': 16, 'alias': []},
+}
+
+# Mixed precision configurations for UniAD
+UNIAD_DTYPE_CONFIGS = {
+    'default': {
+        'backbone': 'float32',
+        'bev_encoder': 'float32',
+        'task_heads': 'float32',
+    },
+    'mixed_precision': {
+        'backbone': 'float16',  # FP16 for CNN operations
+        'bev_encoder': 'float16',  # FP16 for transformer
+        'task_heads': 'float32',  # FP32 for final outputs
+    },
+    'bfloat16': {
+        'backbone': 'bfloat16',  # BF16 maintains range
+        'bev_encoder': 'bfloat16',
+        'task_heads': 'float32',
+    },
+    'int8_quantized': {
+        'backbone': 'int8',  # Quantized backbone
+        'bev_encoder': 'float16',
+        'task_heads': 'float32',
+    }
+}
+```
+
+##### Memory Impact of Data Types
+
+Different data types significantly affect memory usage:
+
+```python
+def calculate_tensor_memory(shape: Tuple[int, ...], dtype: str) -> float:
+    """Calculate memory usage in MB for a tensor"""
+    dtype_info = PYTORCH_DTYPES.get(dtype, PYTORCH_DTYPES['float32'])
+    bytes_per_element = dtype_info['bytes']
+    
+    num_elements = 1
+    for dim in shape:
+        num_elements *= dim
+    
+    memory_bytes = num_elements * bytes_per_element
+    memory_mb = memory_bytes / (1024 * 1024)
+    
+    return memory_mb
+
+# Example: BEV features memory comparison
+bev_shape = (1, 256, 200, 200)  # Typical BEV feature shape
+print(f"FP32: {calculate_tensor_memory(bev_shape, 'float32'):.1f} MB")
+print(f"FP16: {calculate_tensor_memory(bev_shape, 'float16'):.1f} MB")
+print(f"BF16: {calculate_tensor_memory(bev_shape, 'bfloat16'):.1f} MB")
+print(f"INT8: {calculate_tensor_memory(bev_shape, 'int8'):.1f} MB")
+# Output:
+# FP32: 39.1 MB
+# FP16: 19.5 MB
+# BF16: 19.5 MB
+# INT8: 9.8 MB
 ```
 
 ### 3.3 DataflowVisualizer
@@ -305,18 +418,18 @@ class DataflowVisualizer:
 **Top-Level View (Default)**:
 ```mermaid
 graph TB
-    Input["Multi-View Images<br/>Shape: (1, 6, 3, 928, 1600)"] --> BEVFormer["BEVFormer Encoder<br/>In: (1, 6, 3, 928, 1600)<br/>Out: (1, 256, 200, 200)<br/>Memory: 15.2GB<br/>6 layers"]
-    BEVFormer --> BEV["BEV Features<br/>Shape: (1, 256, 200, 200)"]
+    Input["Multi-View Images<br/>Shape: (1, 6, 3, 928, 1600)@fp32"] --> BEVFormer["BEVFormer Encoder<br/>In: (1, 6, 3, 928, 1600)@fp32<br/>Out: (1, 256, 200, 200)@fp32<br/>Memory: 15.2GB<br/>6 layers"]
+    BEVFormer --> BEV["BEV Features<br/>Shape: (1, 256, 200, 200)@fp32"]
     
-    BEV --> TrackHead["Track Head<br/>In: (1, 256, 200, 200)<br/>Out: (1, 900, 266)<br/>Memory: 8GB<br/>900 queries"]
-    BEV --> SegHead["Seg Head<br/>In: (1, 256, 200, 200)<br/>Out: (1, 3, 200, 200)<br/>Memory: 5GB"]
+    BEV --> TrackHead["Track Head<br/>In: (1, 256, 200, 200)@fp32<br/>Out: (1, 900, 266)@fp32<br/>Memory: 8GB<br/>900 queries"]
+    BEV --> SegHead["Seg Head<br/>In: (1, 256, 200, 200)@fp32<br/>Out: (1, 3, 200, 200)@fp32<br/>Memory: 5GB"]
     
-    TrackHead --> MotionHead["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>Memory: 4GB"]
-    TrackHead --> OccHead["Occ Head<br/>In: (1, N, 256)<br/>Out: (1, 200, 200, 5)<br/>Memory: 6GB"]
+    TrackHead --> MotionHead["Motion Head<br/>In: (1, N, 256)@fp32<br/>Out: (1, N, 6, 2, 6)@fp32<br/>Memory: 4GB"]
+    TrackHead --> OccHead["Occ Head<br/>In: (1, N, 256)@fp32<br/>Out: (1, 200, 200, 5)@fp32<br/>Memory: 6GB"]
     
-    MotionHead --> PlanHead["Planning Head<br/>In: [(1,N,6,2,6), (1,200,200,5), (1,N,256)]<br/>Out: (1, 6, 2)<br/>Memory: 3GB"]
+    MotionHead --> PlanHead["Planning Head<br/>In: [(1,N,6,2,6)@fp32, (1,200,200,5)@fp32, (1,N,256)@fp32]<br/>Out: (1, 6, 2)@fp32<br/>Memory: 3GB"]
     OccHead --> PlanHead
-    TrackHead -.-> |"Agent Features<br/>(1, N, 256)"| PlanHead
+    TrackHead -.-> |"Agent Features<br/>(1, N, 256)@fp32"| PlanHead
 ```
 
 **Expanded BEVFormer View**:
@@ -338,6 +451,27 @@ graph TB
         
         Layers --> BEVOut["BEV Output<br/>Reshape: (1, 40000, 256)<br/>→ (1, 256, 200, 200)"]
     end
+```
+
+**Mixed Precision View**:
+```mermaid
+graph TB
+    Input["Multi-View Images<br/>Shape: (1, 6, 3, 928, 1600)@fp32"] --> BEVFormer["BEVFormer Encoder<br/>In: (1, 6, 3, 928, 1600)@fp32<br/>Out: (1, 256, 200, 200)@fp16<br/>Memory: 7.6GB (↓50%)<br/>Mixed Precision"]
+    BEVFormer --> BEV["BEV Features<br/>Shape: (1, 256, 200, 200)@fp16"]
+    
+    BEV --> TrackHead["Track Head<br/>In: (1, 256, 200, 200)@fp16<br/>Out: (1, 900, 266)@fp32<br/>Memory: 5GB<br/>FP32 Output"]
+    BEV --> SegHead["Seg Head<br/>In: (1, 256, 200, 200)@fp16<br/>Out: (1, 3, 200, 200)@fp32<br/>Memory: 3GB"]
+    
+    TrackHead --> MotionHead["Motion Head<br/>In: (1, N, 256)@fp32<br/>Out: (1, N, 6, 2, 6)@fp32<br/>Memory: 4GB"]
+    TrackHead --> OccHead["Occ Head<br/>In: (1, N, 256)@fp32<br/>Out: (1, 200, 200, 5)@fp16<br/>Memory: 3GB (↓50%)"]
+    
+    MotionHead --> PlanHead["Planning Head<br/>In: [(1,N,6,2,6)@fp32, (1,200,200,5)@fp16, (1,N,256)@fp32]<br/>Out: (1, 6, 2)@fp32<br/>Memory: 3GB"]
+    OccHead --> PlanHead
+    TrackHead -.-> |"Agent Features<br/>(1, N, 256)@fp32"| PlanHead
+    
+    style BEVFormer fill:#ffcccc,stroke:#333,stroke-width:2px
+    style BEV fill:#ffcccc,stroke:#333,stroke-width:2px
+    style OccHead fill:#ffcccc,stroke:#333,stroke-width:2px
 ```
 
 ### 3.4 TraceAnalyzer
@@ -586,6 +720,22 @@ python tools/analysis_tools/trace_pytorch_ops.py \
     --shape-format semantic \
     --output uniad_trace_analysis.md
 
+# Trace with dtype tracking
+python tools/analysis_tools/trace_pytorch_ops.py \
+    --config projects/configs/stage2_e2e/base_e2e.py \
+    --checkpoint ckpts/uniad_base_e2e.pth \
+    --track-dtype \
+    --show-dtype \
+    --output uniad_dtype_analysis.md
+
+# Trace with mixed precision analysis
+python tools/analysis_tools/trace_pytorch_ops.py \
+    --config projects/configs/stage2_e2e/base_e2e.py \
+    --checkpoint ckpts/uniad_base_e2e.pth \
+    --mixed-precision fp16 \
+    --dtype-memory-analysis \
+    --output uniad_mixed_precision.md
+
 # Focus on BEV operations with shape tracking
 python tools/analysis_tools/trace_pytorch_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
@@ -797,29 +947,29 @@ graph TB
 graph TB
     %% Complete tensor shape flow through UniAD pipeline
     subgraph "Input Processing"
-        Img["6 Camera Images<br/>(1, 6, 3, 928, 1600)<br/>13.4 MB each"]
-        CAN["CAN Bus Data<br/>(1, 18)<br/>Ego motion"]
+        Img["6 Camera Images<br/>(1, 6, 3, 928, 1600)@uint8<br/>13.4 MB each"]
+        CAN["CAN Bus Data<br/>(1, 18)@fp32<br/>Ego motion"]
     end
     
     subgraph "Feature Extraction"
-        Img --> Backbone["ResNet-101<br/>Transform: (1,6,3,928,1600)<br/>→ (1,6,2048,29,50)"]
-        Backbone --> FPN["FPN<br/>Multi-scale:<br/>(1,6,256,29,50)<br/>(1,6,256,58,100)<br/>(1,6,256,116,200)<br/>(1,6,256,232,400)"]
+        Img --> Backbone["ResNet-101<br/>Transform: (1,6,3,928,1600)@uint8<br/>→ (1,6,2048,29,50)@fp32"]
+        Backbone --> FPN["FPN<br/>Multi-scale:<br/>(1,6,256,29,50)@fp32<br/>(1,6,256,58,100)@fp32<br/>(1,6,256,116,200)@fp32<br/>(1,6,256,232,400)@fp32"]
     end
     
     subgraph "BEV Generation"
-        FPN --> BEVEnc["BEVFormer<br/>6 layers<br/>(1,40000,256)"]
+        FPN --> BEVEnc["BEVFormer<br/>6 layers<br/>(1,40000,256)@fp32"]
         CAN --> BEVEnc
-        BEVEnc --> BEVGrid["BEV Grid<br/>(1,256,200,200)<br/>39.1 MB"]
+        BEVEnc --> BEVGrid["BEV Grid<br/>(1,256,200,200)@fp32<br/>39.1 MB"]
     end
     
     subgraph "Perception Tasks"
-        BEVGrid --> Track["Track Head<br/>Output: (1,N,266)<br/>N objects"]
-        BEVGrid --> Seg["Seg Head<br/>Output: (1,3,200,200)<br/>3 classes"]
+        BEVGrid --> Track["Track Head<br/>Output: (1,N,266)@fp32<br/>N objects"]
+        BEVGrid --> Seg["Seg Head<br/>Output: (1,3,200,200)@fp32<br/>3 classes"]
     end
     
     subgraph "Prediction Tasks"
-        Track --> Motion["Motion Head<br/>Input: (1,N,266)<br/>Output: (1,N,6,2,6)<br/>6 modes"]
-        Track --> Occ["Occ Head<br/>Input: (1,N,266)<br/>Output: (1,200,200,5)<br/>5 frames"]
+        Track --> Motion["Motion Head<br/>Input: (1,N,266)@fp32<br/>Output: (1,N,6,2,6)@fp32<br/>6 modes"]
+        Track --> Occ["Occ Head<br/>Input: (1,N,266)@fp32<br/>Output: (1,200,200,5)@fp32<br/>5 frames"]
     end
     
     subgraph "Planning Task"

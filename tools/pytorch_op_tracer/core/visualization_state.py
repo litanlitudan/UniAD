@@ -19,6 +19,7 @@ class VisualizationState:
     # Shape display
     show_shapes: bool = True
     shape_format: str = 'full'  # 'full', 'compact', 'semantic'
+    show_dtype: bool = True  # Show data type (fp32, fp16, etc.)
     
     # Memory display
     show_memory: bool = True

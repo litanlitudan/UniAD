@@ -13,6 +13,7 @@ from .multi_head_analyzer import MultiHeadTracer
 from .temporal_analyzer import TemporalTracer
 from .bev_analyzer import BEVFeatureTracer
 from .memory_profiler import MemoryProfiler
+from .dtype_analyzer import DtypeAnalyzer
 
 
 class TraceAnalyzer:
@@ -23,6 +24,7 @@ class TraceAnalyzer:
         self.temporal_tracer = TemporalTracer()
         self.bev_tracer = BEVFeatureTracer()
         self.memory_profiler = MemoryProfiler()
+        self.dtype_analyzer = DtypeAnalyzer()
     
     def analyze(self, trace_nodes: List[TraceNode], stage: int = 2) -> Dict[str, Any]:
         """Perform comprehensive analysis"""
@@ -38,7 +40,8 @@ class TraceAnalyzer:
             'head_analysis': self.multi_head_tracer.analyze_head_interactions(trace_nodes),
             'temporal_analysis': self.temporal_tracer.analyze_temporal_flow(trace_nodes),
             'bev_analysis': self.bev_tracer.analyze_bev_operations(trace_nodes),
-            'memory_profile': self.memory_profiler.profile_memory(trace_nodes)
+            'memory_profile': self.memory_profiler.profile_memory(trace_nodes),
+            'dtype_analysis': self.dtype_analyzer.analyze_dtype_usage(trace_nodes)
         }
         
         return analysis

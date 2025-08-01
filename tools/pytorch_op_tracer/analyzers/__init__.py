@@ -5,6 +5,7 @@ from .multi_head_analyzer import MultiHeadTracer
 from .temporal_analyzer import TemporalTracer
 from .bev_analyzer import BEVFeatureTracer
 from .memory_profiler import MemoryProfiler
+from .dtype_analyzer import DtypeAnalyzer
 
 __all__ = [
     "TraceAnalyzer",
@@ -12,4 +13,5 @@ __all__ = [
     "TemporalTracer",
     "BEVFeatureTracer",
     "MemoryProfiler",
+    "DtypeAnalyzer",
 ]

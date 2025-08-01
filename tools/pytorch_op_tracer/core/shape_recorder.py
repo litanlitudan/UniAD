@@ -38,6 +38,9 @@ class TensorShapeRecorder:
             dtype = str(tensors.dtype).replace('torch.', '')
             device = str(tensors.device)
             
+            # Convert dtype to more readable format
+            dtype = TensorShapeRecorder._format_dtype(dtype)
+            
             # Use provided semantic dims or try to infer from context
             sem_dims = None
             if semantic_dims and isinstance(semantic_dims, dict):
@@ -108,17 +111,36 @@ class TensorShapeRecorder:
         return None
     
     @staticmethod
+    def _format_dtype(dtype: str) -> str:
+        """Convert PyTorch dtype to readable format"""
+        dtype_map = {
+            'float32': 'fp32',
+            'float16': 'fp16',
+            'bfloat16': 'bf16',
+            'float64': 'fp64',
+            'int64': 'int64',
+            'int32': 'int32',
+            'int16': 'int16',
+            'int8': 'int8',
+            'uint8': 'uint8',
+            'bool': 'bool'
+        }
+        return dtype_map.get(dtype, dtype)
+    
+    @staticmethod
     def estimate_memory(tensor_infos: List[TensorInfo]) -> float:
         """Estimate memory usage in MB from TensorInfo objects"""
         total_bytes = 0
         
         for info in tensor_infos:
             # Get bytes per element based on dtype
-            if 'float16' in info.dtype or 'half' in info.dtype:
+            if 'float16' in info.dtype or 'half' in info.dtype or 'fp16' in info.dtype:
                 bytes_per_element = 2
-            elif 'float32' in info.dtype or 'float' in info.dtype:
+            elif 'bfloat16' in info.dtype or 'bf16' in info.dtype:
+                bytes_per_element = 2
+            elif 'float32' in info.dtype or 'float' in info.dtype or 'fp32' in info.dtype:
                 bytes_per_element = 4
-            elif 'float64' in info.dtype or 'double' in info.dtype:
+            elif 'float64' in info.dtype or 'double' in info.dtype or 'fp64' in info.dtype:
                 bytes_per_element = 8
             elif 'int8' in info.dtype or 'byte' in info.dtype:
                 bytes_per_element = 1

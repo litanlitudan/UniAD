@@ -3,17 +3,92 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Dict
 
+# Supported data types in PyTorch
+PYTORCH_DTYPES = {
+    # Floating point types
+    'float32': {'bytes': 4, 'alias': ['fp32', 'float']},
+    'float16': {'bytes': 2, 'alias': ['fp16', 'half']},
+    'bfloat16': {'bytes': 2, 'alias': ['bf16']},
+    'float64': {'bytes': 8, 'alias': ['fp64', 'double']},
+    
+    # Integer types
+    'int64': {'bytes': 8, 'alias': ['long']},
+    'int32': {'bytes': 4, 'alias': ['int']},
+    'int16': {'bytes': 2, 'alias': ['short']},
+    'int8': {'bytes': 1, 'alias': ['byte']},
+    'uint8': {'bytes': 1, 'alias': []},
+    
+    # Other types
+    'bool': {'bytes': 1, 'alias': []},
+    'complex64': {'bytes': 8, 'alias': []},
+    'complex128': {'bytes': 16, 'alias': []},
+}
+
+# Mixed precision configurations for UniAD
+UNIAD_DTYPE_CONFIGS = {
+    'default': {
+        'backbone': 'float32',
+        'bev_encoder': 'float32',
+        'task_heads': 'float32',
+    },
+    'mixed_precision': {
+        'backbone': 'float16',  # FP16 for CNN operations
+        'bev_encoder': 'float16',  # FP16 for transformer
+        'task_heads': 'float32',  # FP32 for final outputs
+    },
+    'bfloat16': {
+        'backbone': 'bfloat16',  # BF16 maintains range
+        'bev_encoder': 'bfloat16',
+        'task_heads': 'float32',
+    },
+    'int8_quantized': {
+        'backbone': 'int8',  # Quantized backbone
+        'bev_encoder': 'float16',
+        'task_heads': 'float32',
+    }
+}
+
 
 @dataclass
 class TensorInfo:
-    """Detailed tensor information including shape and semantics"""
+    """Detailed tensor information including shape, dtype, and semantics"""
     shape: Tuple[int, ...]
-    dtype: str = "float32"
+    dtype: str = "float32"  # float32, float16, bfloat16, int8, int32, bool, etc.
     device: str = "cuda"
     semantic_dims: Optional[Dict[int, str]] = None  # e.g., {0: "batch", 1: "channels"}
+    requires_grad: bool = True
+    is_quantized: bool = False
+    memory_bytes: Optional[int] = None  # Actual memory usage considering dtype
     
     def __str__(self):
-        return f"({','.join(map(str, self.shape))})"
+        dtype_str = self.dtype.replace('float', 'fp').replace('bfloat', 'bf')
+        return f"[{','.join(map(str, self.shape))}]@{dtype_str}"
+    
+    def memory_size(self) -> int:
+        """Calculate memory size in bytes based on shape and dtype"""
+        if self.memory_bytes is not None:
+            return self.memory_bytes
+        
+        # Calculate based on dtype
+        dtype_bytes = {
+            'float32': 4, 'float': 4, 'fp32': 4,
+            'float16': 2, 'half': 2, 'fp16': 2,
+            'bfloat16': 2, 'bf16': 2,
+            'float64': 8, 'double': 8, 'fp64': 8,
+            'int64': 8, 'long': 8,
+            'int32': 4, 'int': 4,
+            'int16': 2, 'short': 2,
+            'int8': 1, 'byte': 1,
+            'uint8': 1,
+            'bool': 1
+        }
+        
+        bytes_per_element = dtype_bytes.get(self.dtype.lower(), 4)
+        num_elements = 1
+        for dim in self.shape:
+            num_elements *= dim
+        
+        return num_elements * bytes_per_element
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
@@ -21,7 +96,11 @@ class TensorInfo:
             'shape': self.shape,
             'dtype': self.dtype,
             'device': self.device,
-            'semantic_dims': self.semantic_dims
+            'semantic_dims': self.semantic_dims,
+            'requires_grad': self.requires_grad,
+            'is_quantized': self.is_quantized,
+            'memory_bytes': self.memory_bytes,
+            'memory_mb': self.memory_size() / (1024 * 1024)
         }
     
     @classmethod

@@ -30,10 +30,10 @@ graph TB
     end
     
     subgraph "Direct Inputs to Planning"
-        Motion["Motion Predictions<br/>[1, N, 6, 2, 6]<br/>From Motion Head"]
-        Occ["Occupancy Predictions<br/>[1, 200, 200, 5]<br/>From Occ Head"]
-        AgentFeatures["Agent Features<br/>[1, N, 256]<br/>From Track Head"]
-        EgoFeature["Ego Track Query<br/>[1, 1, 256]<br/>From Track Head"]
+        Motion["Motion Predictions<br/>[1, N, 6, 2, 6]@fp32<br/>From Motion Head"]
+        Occ["Occupancy Predictions<br/>[1, 200, 200, 5]@fp32<br/>From Occ Head"]
+        AgentFeatures["Agent Features<br/>[1, N, 256]@fp32<br/>From Track Head"]
+        EgoFeature["Ego Track Query<br/>[1, 1, 256]@fp32<br/>From Track Head"]
     end
     
     subgraph "Planning Head Components"
@@ -74,12 +74,12 @@ graph TB
 graph TB
     subgraph "Task Heads"
         Track["Track Head<br/>Detection & Tracking"]
-        Motion["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>Memory: 4GB"]
-        Occ["Occ Head<br/>In: (1, N, 256)<br/>Out: (1, 200, 200, 5)<br/>Memory: 6GB"]
+        Motion["Motion Head<br/>In: (1, N, 256)@fp32<br/>Out: (1, N, 6, 2, 6)@fp32<br/>Memory: 240MB"]
+        Occ["Occ Head<br/>In: (1, N, 256)@fp32<br/>Out: (1, 200, 200, 5)@fp32<br/>Memory: 120MB"]
     end
     
     subgraph "Planning Head Inputs"
-        Planning["Planning Head<br/>In: [(1,N,6,2,6), (1,200,200,5), (1,N,256)]<br/>Out: (1, 6, 2)<br/>Memory: 3GB"]
+        Planning["Planning Head<br/>In: [(1,N,6,2,6)@fp32, (1,200,200,5)@fp32, (1,N,256)@fp32]<br/>Out: (1, 6, 2)@fp32<br/>Memory: 145MB"]
     end
     
     Track --> Motion
@@ -100,8 +100,8 @@ graph TB
 graph TB
     subgraph "Trajectory Planner Details"
         subgraph "Goal Processing"
-            Goals["Goal Candidates<br/>[1, 20, 2]"]
-            GE["Goal Encoding<br/>[1, 20, 128]<br/>Mem: 8.7MB"]
+            Goals["Goal Candidates<br/>[1, 20, 2]@fp32"]
+            GE["Goal Encoding<br/>[1, 20, 128]@fp32<br/>Mem: 8.7MB"]
         end
         
         subgraph "Multi-Head Attention"
@@ -381,8 +381,8 @@ graph TB
 
 ### Computational Efficiency
 
-- **Memory Usage**: 145.3 MB (module only)
-- **Inference Time**: <10ms per frame
+- **Memory Usage**: 145.3 MB (FP32), ~75 MB (FP16)
+- **Inference Time**: <10ms per frame (FP32), <7ms (FP16)
 - **Planning Frequency**: 2 Hz (configurable)
 - **Temporal Overhead**: 51.3% for multi-frame context
 
@@ -478,6 +478,36 @@ graph TB
    # This prevents planning gradients from affecting tracking
    ```
 
+## Mixed Precision Optimization
+
+### Critical Safety Consideration
+Planning is safety-critical, requiring careful mixed precision implementation:
+
+```python
+planning_mixed_precision = {
+    'interaction_encoder': 'float16',    # Agent interactions in FP16
+    'goal_processing': 'float16',        # Goal candidates in FP16
+    'trajectory_decoder': 'float32',     # Keep trajectory generation in FP32
+    'safety_checker': 'float32',         # Critical safety validation in FP32
+    'loss_computation': 'float32'        # All losses in FP32
+}
+```
+
+### Memory Impact with Mixed Precision
+| Component | FP32 Memory | FP16 Memory | Reduction | Notes |
+|-----------|-------------|-------------|-----------|-------|
+| Interaction Encoder | 45.6 MB | 22.8 MB | 50% | Safe for FP16 |
+| Goal Network | 23.4 MB | 11.7 MB | 50% | Non-critical |
+| Trajectory Planner | 67.8 MB | 67.8 MB | 0% | Keep FP32 for safety |
+| Safety Checker | 12.3 MB | 12.3 MB | 0% | Keep FP32 for safety |
+| **Total** | **145.3 MB** | **114.6 MB** | **21%** | Conservative approach |
+
+### Implementation Guidelines
+- Maintain FP32 for final trajectory outputs
+- Use gradient scaling for FP16 components
+- Extensive validation required before deployment
+- Monitor collision rates during mixed precision training
+
 ## Key Insights
 
 1. **Hierarchical Integration**: Successfully leverages all upstream modules through attention-based fusion
@@ -491,6 +521,8 @@ graph TB
 5. **End-to-End Benefits**: Joint training allows planning objectives to influence feature learning
 
 6. **Navigation Flexibility**: Incorporates high-level commands while maintaining safety
+
+7. **Mixed Precision Caution**: Limited gains due to safety requirements
 
 ## Conclusions
 

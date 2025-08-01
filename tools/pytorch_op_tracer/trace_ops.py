@@ -73,6 +73,18 @@ def main():
     parser.add_argument('--annotate-memory-per-element', action='store_true',
                         help='Show memory usage per tensor element')
     
+    # Data type (dtype) options
+    parser.add_argument('--show-dtype', action='store_true', default=True,
+                        help='Show tensor data types (default: True)')
+    parser.add_argument('--no-dtype', dest='show_dtype', action='store_false',
+                        help='Disable data type display')
+    parser.add_argument('--track-dtype', action='store_true',
+                        help='Track data type conversions and mixed precision')
+    parser.add_argument('--mixed-precision', type=str, choices=['fp16', 'bf16', 'int8'],
+                        help='Simulate mixed precision execution')
+    parser.add_argument('--dtype-memory-analysis', action='store_true',
+                        help='Analyze memory impact of different data types')
+    
     # Analysis options
     parser.add_argument('--memory-profile', action='store_true', 
                         help='Enable memory profiling')
@@ -176,6 +188,9 @@ def main():
         model=model if not args.test_mode else None,
         memory_threshold=args.memory_threshold
     )
+    
+    # Update visualization state with dtype options
+    visualizer.state.show_dtype = args.show_dtype
     mermaid_diagram = visualizer.generate_mermaid(
         trace_nodes, 
         analysis['head_analysis'],
@@ -241,6 +256,59 @@ def main():
             memory_view = visualizer.generate_memory_based_view(trace_nodes, args.memory_threshold)
             f.write(memory_view)
             f.write("\n\n")
+        
+        # Data Type Memory Analysis
+        if args.dtype_memory_analysis:
+            f.write("## Data Type Memory Impact Analysis\n\n")
+            f.write("This section analyzes how different data types affect memory usage.\n\n")
+            
+            # Calculate memory impact for different precision levels
+            from core.data_structures import PYTORCH_DTYPES, UNIAD_DTYPE_CONFIGS
+            
+            total_memory_fp32 = sum(node.memory_usage for node in trace_nodes)
+            
+            f.write("### Memory Usage by Precision\n\n")
+            f.write("| Precision | Total Memory | Reduction | Notes |\n")
+            f.write("|-----------|-------------|-----------|-------|\n")
+            f.write(f"| FP32 (baseline) | {total_memory_fp32:.1f} MB | 0% | Full precision |\n")
+            f.write(f"| FP16 | {total_memory_fp32 * 0.5:.1f} MB | 50% | Half precision |\n")
+            f.write(f"| BF16 | {total_memory_fp32 * 0.5:.1f} MB | 50% | Brain float |\n")
+            f.write(f"| INT8 | {total_memory_fp32 * 0.25:.1f} MB | 75% | Quantized |\n")
+            f.write("\n\n")
+            
+            # Show mixed precision configurations
+            f.write("### Mixed Precision Configurations\n\n")
+            for config_name, config in UNIAD_DTYPE_CONFIGS.items():
+                f.write(f"**{config_name}**:\n")
+                for component, dtype in config.items():
+                    f.write(f"- {component}: {dtype}\n")
+                f.write("\n")
+            
+            # Dtype tracking if enabled
+            if args.track_dtype:
+                f.write("### Data Type Conversions\n\n")
+                f.write("Tracking of data type conversions throughout the model:\n\n")
+                dtype_conversions = []
+                for node in trace_nodes:
+                    if node.input_shapes and node.output_shapes:
+                        in_dtype = node.input_shapes[0].dtype if node.input_shapes else "unknown"
+                        out_dtype = node.output_shapes[0].dtype if node.output_shapes else "unknown"
+                        if in_dtype != out_dtype:
+                            dtype_conversions.append({
+                                'module': node.module_path,
+                                'operation': node.operation,
+                                'from': in_dtype,
+                                'to': out_dtype
+                            })
+                
+                if dtype_conversions:
+                    f.write("| Module | Operation | From | To |\n")
+                    f.write("|--------|-----------|------|----|\n")
+                    for conv in dtype_conversions[:20]:  # Limit to top 20
+                        f.write(f"| {conv['module'][:40]} | {conv['operation'][:20]} | {conv['from']} | {conv['to']} |\n")
+                else:
+                    f.write("No data type conversions detected.\n")
+                f.write("\n\n")
     
     # Export JSON if requested
     if args.export_json:

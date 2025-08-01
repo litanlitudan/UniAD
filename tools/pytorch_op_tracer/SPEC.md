@@ -314,8 +314,9 @@ graph TB
     TrackHead --> MotionHead["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>Memory: 4GB"]
     TrackHead --> OccHead["Occ Head<br/>In: (1, N, 256)<br/>Out: (1, 200, 200, 5)<br/>Memory: 6GB"]
     
-    MotionHead --> PlanHead["Planning Head<br/>In: Multiple tensors<br/>Out: (1, 6, 2)<br/>Memory: 3GB"]
+    MotionHead --> PlanHead["Planning Head<br/>In: [(1,N,6,2,6), (1,200,200,5), (1,N,256)]<br/>Out: (1, 6, 2)<br/>Memory: 3GB"]
     OccHead --> PlanHead
+    TrackHead -.-> |"Agent Features<br/>(1, N, 256)"| PlanHead
 ```
 
 **Expanded BEVFormer View**:
@@ -456,7 +457,7 @@ class MultiHeadTracer:
         self.head_dependencies = {
             'motion': ['track'],
             'occ': ['track'],
-            'planning': ['track', 'motion', 'occ']
+            'planning': ['track', 'motion', 'occ']  # Note: track provides agent features directly
         }
 
     def trace_task_heads(self, model):
@@ -653,8 +654,9 @@ graph TB
     
     TrackHead --> OccHead["Occ Head<br/>Input: (1, N, 256)<br/>Output: (1, 200, 200, 5)<br/>Future: 3s<br/>Memory: 6GB"]
     
-    MotionHead --> PlanHead["Planning Head<br/>Input: Motion(1,N,6,2,6) + Occ(1,200,200,5)<br/>Output: (1, 6, 2)<br/>Trajectory: 3s<br/>Memory: 3GB"]
+    MotionHead --> PlanHead["Planning Head<br/>Input: [(1,N,6,2,6), (1,200,200,5), (1,N,256)]<br/>Output: (1, 6, 2)<br/>Trajectory: 3s<br/>Memory: 3GB"]
     OccHead --> PlanHead
+    TrackHead -.-> |"Agent Features<br/>(1, N, 256)"| PlanHead
     
     %% Style for different module types
     style Backbone fill:#e1e1e1,stroke:#333,stroke-width:2px
@@ -699,13 +701,13 @@ graph TB
 graph TB
     %% Expanded view of Planning Head with tensor shapes
     subgraph "Inputs to Planning"
-        TrackResults["Track Results<br/>Shape: (1, N, 266)<br/>N detected objects"]
+        TrackResults["Agent Features (Track Head)<br/>Shape: (1, N, 256)<br/>N detected objects"]
         MotionPred["Motion Predictions<br/>Shape: (1, N, 6, 2, 6)<br/>6 modes × 6 timesteps"]
         OccPred["Occupancy Predictions<br/>Shape: (1, 200, 200, 5)<br/>5 future frames"]
     end
     
     subgraph "Planning Head (Expanded)"
-        TrackResults --> FeatureAgg["Feature Aggregation<br/>Input: Track(1,N,266) + Motion(1,N,6,2,6)<br/>+ Occ(1,200,200,5)<br/>Output: (1, 256)"]
+        TrackResults --> FeatureAgg["Feature Aggregation<br/>Input: [(1,N,256), (1,N,6,2,6), (1,200,200,5)]<br/>Output: (1, 256)"]
         MotionPred --> FeatureAgg
         OccPred --> FeatureAgg
         
@@ -754,7 +756,7 @@ graph TB
     %% Collapsed modules (< 5GB) with shapes
     BEVFeatures --> SegHead["Seg Head<br/>In: (1, 256, 200, 200)<br/>Out: (1, 3, 200, 200)<br/>5GB"]
     SmallModules --> MotionHead["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>4GB"]
-    SmallModules --> PlanHead["Plan Head<br/>In: Multiple<br/>Out: (1, 6, 2)<br/>3GB"]
+    SmallModules --> PlanHead["Plan Head<br/>In: [(1,N,6,2,6), (1,200,200,5)]<br/>Out: (1, 6, 2)<br/>3GB"]
 ```
 
 ### 7.5 Shape Transformation View
@@ -821,7 +823,7 @@ graph TB
     end
     
     subgraph "Planning Task"
-        Motion --> Plan["Planning Head<br/>Inputs: Multiple<br/>Output: (1,6,2)<br/>3s trajectory"]
+        Motion --> Plan["Planning Head<br/>Inputs: [(1,N,6,2,6), (1,200,200,5), (1,N,266)]<br/>Output: (1,6,2)<br/>3s trajectory"]
         Occ --> Plan
         Track --> Plan
     end

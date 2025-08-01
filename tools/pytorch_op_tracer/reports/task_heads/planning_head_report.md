@@ -23,30 +23,75 @@ The Planning Head (PlanningHeadSingleMode) represents the culmination of UniAD's
 
 ```mermaid
 graph TB
-    subgraph "Input Features"
-        Motion["Motion Features<br/>[batch=1, agents=N, modes=6, T=12, xy=2]"]
-        Occ["Occupancy Features<br/>[batch=1, H=200, W=200, T=5]"]
-        Ego["Ego State<br/>[batch=1, state_dim=6]"]
+    subgraph "Upstream Modules"
+        TrackHead["Track Head<br/>3D Detection & Tracking"]
+        MotionHead["Motion Head<br/>Multi-Agent Prediction"]
+        OccHead["Occupancy Head<br/>Future Occupancy"]
     end
     
-    subgraph "Planning Head"
+    subgraph "Direct Inputs to Planning"
+        Motion["Motion Predictions<br/>[1, N, 6, 2, 6]<br/>From Motion Head"]
+        Occ["Occupancy Predictions<br/>[1, 200, 200, 5]<br/>From Occ Head"]
+        AgentFeatures["Agent Features<br/>[1, N, 256]<br/>From Track Head"]
+        EgoFeature["Ego Track Query<br/>[1, 1, 256]<br/>From Track Head"]
+    end
+    
+    subgraph "Planning Head Components"
         GCN["Goal Candidate Network<br/>Memory: 23.4MB"]
         IE["Interaction Encoder<br/>Memory: 45.6MB"]
         TP["Trajectory Planner<br/>Memory: 67.8MB"]
         SC["Safety Checker<br/>Memory: 12.3MB"]
     end
     
+    TrackHead --> AgentFeatures
+    TrackHead --> EgoFeature
+    TrackHead --> MotionHead
+    TrackHead --> OccHead
+    MotionHead --> Motion
+    OccHead --> Occ
+    
     Motion --> IE
-    Occ --> IE
-    Ego --> GCN
+    Occ --> SC
+    AgentFeatures --> IE
+    EgoFeature --> TP
+    
     GCN --> TP
     IE --> TP
     TP --> SC
     
-    SC --> Output["Ego Trajectory<br/>[batch=1, T=6, xy=2]"]
+    SC --> Output["Ego Trajectory<br/>[1, 6, 2]"]
     
+    style TrackHead fill:#ffcccc,stroke:#333,stroke-width:2px
+    style MotionHead fill:#ccffcc,stroke:#333,stroke-width:2px
+    style OccHead fill:#ccccff,stroke:#333,stroke-width:2px
     style TP fill:#99ff99,stroke:#333,stroke-width:3px
     style IE fill:#99ccff,stroke:#333,stroke-width:2px
+```
+
+### Simplified Dataflow View
+
+```mermaid
+graph TB
+    subgraph "Task Heads"
+        Track["Track Head<br/>Detection & Tracking"]
+        Motion["Motion Head<br/>In: (1, N, 256)<br/>Out: (1, N, 6, 2, 6)<br/>Memory: 4GB"]
+        Occ["Occ Head<br/>In: (1, N, 256)<br/>Out: (1, 200, 200, 5)<br/>Memory: 6GB"]
+    end
+    
+    subgraph "Planning Head Inputs"
+        Planning["Planning Head<br/>In: [(1,N,6,2,6), (1,200,200,5), (1,N,256)]<br/>Out: (1, 6, 2)<br/>Memory: 3GB"]
+    end
+    
+    Track --> Motion
+    Track --> Occ
+    Motion --> Planning
+    Occ --> Planning
+    Track -.-> |"Agent Features<br/>(1, N, 256)"| Planning
+    
+    style Track fill:#ffcccc,stroke:#333,stroke-width:2px
+    style Motion fill:#ccffcc,stroke:#333,stroke-width:2px
+    style Occ fill:#ccccff,stroke:#333,stroke-width:2px
+    style Planning fill:#ffffcc,stroke:#333,stroke-width:3px
 ```
 
 ### Expanded Trajectory Planner View

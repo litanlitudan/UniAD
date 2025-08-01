@@ -6,7 +6,6 @@ This directory contains comprehensive analysis reports of the UniAD (Unified Aut
 
 ### Main Architecture Overview
 - **[UniAD_Architecture_Summary.md](UniAD_Architecture_Summary.md)** - Comprehensive architectural overview with navigation to all components
-- **[UniAD_Architecture_with_Dtypes.md](UniAD_Architecture_with_Dtypes.md)** - Architecture analysis with data type information and mixed precision recommendations
 
 ### Reports by Category
 

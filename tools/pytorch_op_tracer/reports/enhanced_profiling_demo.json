@@ -1,0 +1,2177 @@
+{
+  "gpu_properties": {
+    "name": "NVIDIA GeForce RTX 3090",
+    "compute_capability": [
+      8,
+      6
+    ],
+    "total_memory_gb": 23.68426513671875,
+    "memory_bandwidth_gb_s": 936,
+    "tensor_cores": true,
+    "fp16_tflops": 71,
+    "fp32_tflops": 35.6,
+    "sm_count": 82,
+    "max_threads_per_sm": 2048
+  },
+  "total_operations": 52,
+  "operations": [
+    {
+      "operation": "aten",
+      "module": "conv2d",
+      "timing": {
+        "cpu_ms": 1962.289,
+        "cuda_ms": 0.231
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            3,
+            224,
+            224
+          ],
+          [
+            64,
+            3,
+            3,
+            3
+          ],
+          [
+            64
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::conv2d",
+          "duration_us": 69.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::conv2d",
+          "duration_us": 162.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "convolution",
+      "timing": {
+        "cpu_ms": 1962.215,
+        "cuda_ms": 0.231
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            3,
+            224,
+            224
+          ],
+          [
+            64,
+            3,
+            3,
+            3
+          ],
+          [
+            64
+          ],
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::convolution",
+          "duration_us": 69.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::convolution",
+          "duration_us": 162.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "_convolution",
+      "timing": {
+        "cpu_ms": 1962.187,
+        "cuda_ms": 0.231
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            3,
+            224,
+            224
+          ],
+          [
+            64,
+            3,
+            3,
+            3
+          ],
+          [
+            64
+          ],
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::_convolution",
+          "duration_us": 69.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::_convolution",
+          "duration_us": 162.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "cudnn_convolution",
+      "timing": {
+        "cpu_ms": 1961.919,
+        "cuda_ms": 0.184
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            3,
+            224,
+            224
+          ],
+          [
+            64,
+            3,
+            3,
+            3
+          ],
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::cudnn_convolution",
+          "duration_us": 38.0,
+          "type": "cudnn",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::cudnn_convolution",
+          "duration_us": 146.0,
+          "type": "cudnn",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "resize_",
+      "timing": {
+        "cpu_ms": 0.111,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            64,
+            3,
+            3,
+            3
+          ],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "empty",
+      "timing": {
+        "cpu_ms": 0.843,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "reshape",
+      "timing": {
+        "cpu_ms": 0.099,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            64
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "view",
+      "timing": {
+        "cpu_ms": 0.184,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            64
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "add_",
+      "timing": {
+        "cpu_ms": 0.211,
+        "cuda_ms": 0.133
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ],
+          [
+            1,
+            64,
+            1,
+            1
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::add_",
+          "duration_us": 31.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::add_",
+          "duration_us": 16.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::add_",
+          "duration_us": 13.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::add_",
+          "duration_us": 12.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::add_",
+          "duration_us": 13.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::add_",
+          "duration_us": 14.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::add_",
+          "duration_us": 34.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.133
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 31.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 16.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 13.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 12.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 13.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 14.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::AddFunctor<float>, at::detail::Array<char*, 3>, OffsetCalculator<2, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 34.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "zeros",
+      "timing": {
+        "cpu_ms": 0.173,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 3.814697265625e-06,
+        "reserved_mb": 4.57763671875e-06
+      },
+      "shapes": {
+        "inputs": [
+          [],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "zero_",
+      "timing": {
+        "cpu_ms": 0.035,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "Conv2d",
+      "module": "conv1",
+      "timing": {
+        "cpu_ms": 0.044,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": -3.814697265625e-06,
+        "reserved_mb": -4.57763671875e-06
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "decomposition": {
+        "primitives": [
+          {
+            "name": "im2col",
+            "category": "memory_transform",
+            "hardware_mapping": "custom_kernel"
+          },
+          {
+            "name": "gemm",
+            "category": "compute",
+            "hardware_mapping": "cublas_gemm/tensor_core"
+          },
+          {
+            "name": "bias_add",
+            "category": "elementwise",
+            "hardware_mapping": "elementwise_kernel"
+          }
+        ],
+        "fusion_opportunities": [
+          "conv_bias_fusion",
+          "conv_relu_fusion"
+        ]
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "add",
+      "timing": {
+        "cpu_ms": 0.044,
+        "cuda_ms": 0.001
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::add",
+          "duration_us": 1.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::vectorized_elementwise_kernel<4, at::native::BUnaryFunctor<at::native::AddFunctor<long> >, at::detail::Array<char*, 2> >(int, at::native::BUnaryFunctor<at::native::AddFunctor<long> >, at::detail::Array<char*, 2>)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.001
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BUnaryFunctor<at::native::AddFunctor<long> >, at::detail::Array<char*, 2> >(int, at::native::BUnaryFunctor<at::native::AddFunctor<long> >, at::detail::Array<char*, 2>)",
+          "duration_us": 1.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "batch_norm",
+      "timing": {
+        "cpu_ms": 0.189,
+        "cuda_ms": 0.302
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::batch_norm",
+          "duration_us": 302.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "_batch_norm_impl_index",
+      "timing": {
+        "cpu_ms": 0.17,
+        "cuda_ms": 0.302
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::_batch_norm_impl_index",
+          "duration_us": 302.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "cudnn_batch_norm",
+      "timing": {
+        "cpu_ms": 0.154,
+        "cuda_ms": 0.302
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [
+            64
+          ],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::cudnn_batch_norm",
+          "duration_us": 302.0,
+          "type": "cudnn",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "empty_like",
+      "timing": {
+        "cpu_ms": 0.571,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ],
+          [],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "void cudnn",
+      "module": "bn_fw_tr_1C11_kernel_NCHW<float, float, 512, true, 1>(cudnnTensorStruct, float const*, cudnnTensorStruct, float*, float const*, float const*, float, float, float*, float*, float*, float*, float, float)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.302
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void cudnn::bn_fw_tr_1C11_kernel_NCHW<float, float, 512, true, 1>(cudnnTensorStruct, float const*, cudnnTensorStruct, float*, float const*, float const*, float, float, float*, float*, float*, float*, float, float)",
+          "duration_us": 302.0,
+          "type": "cudnn",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "BatchNorm2d",
+      "module": "bn1",
+      "timing": {
+        "cpu_ms": 0.027,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": -3.814697265625e-06,
+        "reserved_mb": -4.57763671875e-06
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "decomposition": {
+        "primitives": [
+          {
+            "name": "mean_computation",
+            "category": "reduction",
+            "hardware_mapping": "reduction_kernel"
+          },
+          {
+            "name": "variance_computation",
+            "category": "reduction",
+            "hardware_mapping": "reduction_kernel"
+          },
+          {
+            "name": "normalize",
+            "category": "elementwise",
+            "hardware_mapping": "elementwise_kernel"
+          }
+        ],
+        "fusion_opportunities": [
+          "bn_relu_fusion",
+          "conv_bn_fusion"
+        ]
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "relu",
+      "timing": {
+        "cpu_ms": 0.137,
+        "cuda_ms": 0.03
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::relu",
+          "duration_us": 30.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "clamp_min",
+      "timing": {
+        "cpu_ms": 0.135,
+        "cuda_ms": 0.06
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            64,
+            224,
+            224
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::clamp_min",
+          "duration_us": 30.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::clamp_min",
+          "duration_us": 30.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::clamp_min_scalar_kernel_impl(at::TensorIterator&, c10::Scalar)::{lambda()#1}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2> >(int, at::native::(anonymous namespace)::clamp_min_scalar_kernel_impl(at::TensorIterator&, c10::Scalar)::{lambda()#1}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.03
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::clamp_min_scalar_kernel_impl(at::TensorIterator&, c10::Scalar)::{lambda()#1}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2> >(int, at::native::(anonymous namespace)::clamp_min_scalar_kernel_impl(at::TensorIterator&, c10::Scalar)::{lambda()#1}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>)",
+          "duration_us": 30.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void xmma_new",
+      "module": "gemm::kernel<xmma_new::implicit_gemm::fprop::Kernel_traits<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::fprop::Gmem_tile_a_t<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, false, xmma_new::implicit_gemm::fprop::Gmem_tile_base_a<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, xmma_new::Row, 16, 128> >, xmma_new::implicit_gemm::fprop::Gmem_tile_c_n<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, 16, xmma_new::Fragment_c<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, false>, false>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 4> >(xmma_new::implicit_gemm::fprop::Kernel_traits<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::fprop::Gmem_tile_a_t<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, false, xmma_new::implicit_gemm::fprop::Gmem_tile_base_a<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, xmma_new::Row, 16, 128> >, xmma_new::implicit_gemm::fprop::Gmem_tile_c_n<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, 16, xmma_new::Fragment_c<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, false>, false>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 4>::Params)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.112
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void xmma_new::gemm::kernel<xmma_new::implicit_gemm::fprop::Kernel_traits<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::fprop::Gmem_tile_a_t<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, false, xmma_new::implicit_gemm::fprop::Gmem_tile_base_a<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, xmma_new::Row, 16, 128> >, xmma_new::implicit_gemm::fprop::Gmem_tile_c_n<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, 16, xmma_new::Fragment_c<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, false>, false>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 4> >(xmma_new::implicit_gemm::fprop::Kernel_traits<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::fprop::Gmem_tile_a_t<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, false, xmma_new::implicit_gemm::fprop::Gmem_tile_base_a<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 16, xmma_new::Row, 16, 128> >, xmma_new::implicit_gemm::fprop::Gmem_tile_c_n<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, 16, xmma_new::Fragment_c<xmma_new::Ampere_hmma_tf32_traits<unsigned int, float>, xmma_new::Cta_tile<xmma_new::Ampere, 128, 128, 16, 2, 2, 1, 1, 1>, false>, false>, xmma_new::implicit_gemm::Input_related<1, 3, 3, false>, 4>::Params)",
+          "duration_us": 112.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "Conv2d",
+      "module": "conv2",
+      "timing": {
+        "cpu_ms": 0.026,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": -3.814697265625e-06,
+        "reserved_mb": -4.57763671875e-06
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "decomposition": {
+        "primitives": [
+          {
+            "name": "im2col",
+            "category": "memory_transform",
+            "hardware_mapping": "custom_kernel"
+          },
+          {
+            "name": "gemm",
+            "category": "compute",
+            "hardware_mapping": "cublas_gemm/tensor_core"
+          },
+          {
+            "name": "bias_add",
+            "category": "elementwise",
+            "hardware_mapping": "elementwise_kernel"
+          }
+        ],
+        "fusion_opportunities": [
+          "conv_bias_fusion",
+          "conv_relu_fusion"
+        ]
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "transpose",
+      "timing": {
+        "cpu_ms": 0.265,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            128,
+            12544
+          ],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "as_strided",
+      "timing": {
+        "cpu_ms": 0.158,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            128,
+            12544
+          ],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "chunk",
+      "timing": {
+        "cpu_ms": 0.196,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            384,
+            128
+          ],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "split",
+      "timing": {
+        "cpu_ms": 0.174,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            384,
+            128
+          ],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "narrow",
+      "timing": {
+        "cpu_ms": 0.148,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            384,
+            128
+          ],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "slice",
+      "timing": {
+        "cpu_ms": 0.097,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            384,
+            128
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "linear",
+      "timing": {
+        "cpu_ms": 2.355,
+        "cuda_ms": 0.33
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            12544,
+            1,
+            128
+          ],
+          [
+            128,
+            128
+          ],
+          [
+            128
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::linear",
+          "duration_us": 65.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::linear",
+          "duration_us": 66.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::linear",
+          "duration_us": 67.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::linear",
+          "duration_us": 47.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::linear",
+          "duration_us": 85.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "t",
+      "timing": {
+        "cpu_ms": 0.14,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            128,
+            128
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "matmul",
+      "timing": {
+        "cpu_ms": 1.995,
+        "cuda_ms": 0.244
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            12544,
+            1,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::matmul",
+          "duration_us": 52.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::matmul",
+          "duration_us": 54.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::matmul",
+          "duration_us": 54.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::matmul",
+          "duration_us": 33.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::matmul",
+          "duration_us": 51.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "contiguous",
+      "timing": {
+        "cpu_ms": 0.289,
+        "cuda_ms": 0.081
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            12544,
+            1,
+            128
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::contiguous",
+          "duration_us": 21.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::contiguous",
+          "duration_us": 22.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::contiguous",
+          "duration_us": 22.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::contiguous",
+          "duration_us": 16.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "copy_",
+      "timing": {
+        "cpu_ms": 0.118,
+        "cuda_ms": 0.081
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            12544,
+            1,
+            128
+          ],
+          [
+            12544,
+            1,
+            128
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::copy_",
+          "duration_us": 21.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::copy_",
+          "duration_us": 22.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::copy_",
+          "duration_us": 22.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::copy_",
+          "duration_us": 16.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::unrolled_elementwise_kernel<at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.081
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 21.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 22.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 22.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast>(int, at::native::copy_device_to_device(at::TensorIterator&, bool)::{lambda()#2}::operator()() const::{lambda()#8}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>, OffsetCalculator<1, unsigned int>, OffsetCalculator<1, unsigned int>, at::native::memory::LoadWithoutCast, at::native::memory::StoreWithoutCast)",
+          "duration_us": 16.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "mm",
+      "timing": {
+        "cpu_ms": 1.466,
+        "cuda_ms": 0.179
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            12544,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::mm",
+          "duration_us": 31.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::mm",
+          "duration_us": 32.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::mm",
+          "duration_us": 32.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::mm",
+          "duration_us": 33.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::mm",
+          "duration_us": 51.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void cutlass",
+      "module": "Kernel<cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4::Params)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.128
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4::Params)",
+          "duration_us": 31.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4::Params)",
+          "duration_us": 32.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4::Params)",
+          "duration_us": 32.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x4_tn_align4::Params)",
+          "duration_us": 33.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "_unsafe_view",
+      "timing": {
+        "cpu_ms": 0.122,
+        "cuda_ms": 0.0
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            12544,
+            128
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      }
+    },
+    {
+      "operation": "aten",
+      "module": "div",
+      "timing": {
+        "cpu_ms": 0.113,
+        "cuda_ms": 1.506
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            8,
+            12544,
+            16
+          ],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::div",
+          "duration_us": 17.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::div",
+          "duration_us": 1489.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::vectorized_elementwise_kernel<4, at::native::MulScalarFunctor<float, float>, at::detail::Array<char*, 2> >(int, at::native::MulScalarFunctor<float, float>, at::detail::Array<char*, 2>)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 1.506
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<4, at::native::MulScalarFunctor<float, float>, at::detail::Array<char*, 2> >(int, at::native::MulScalarFunctor<float, float>, at::detail::Array<char*, 2>)",
+          "duration_us": 17.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<4, at::native::MulScalarFunctor<float, float>, at::detail::Array<char*, 2> >(int, at::native::MulScalarFunctor<float, float>, at::detail::Array<char*, 2>)",
+          "duration_us": 1489.0,
+          "type": "elementwise",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "bmm",
+      "timing": {
+        "cpu_ms": 0.196,
+        "cuda_ms": 17.445
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            8,
+            12544,
+            16
+          ],
+          [
+            8,
+            16,
+            12544
+          ]
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::bmm",
+          "duration_us": 7522.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "aten::bmm",
+          "duration_us": 9923.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void cutlass",
+      "module": "Kernel<cutlass_80_tensorop_s1688gemm_128x64_16x6_tn_align4>(cutlass_80_tensorop_s1688gemm_128x64_16x6_tn_align4::Params)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 7.522
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_128x64_16x6_tn_align4>(cutlass_80_tensorop_s1688gemm_128x64_16x6_tn_align4::Params)",
+          "duration_us": 7522.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "softmax",
+      "timing": {
+        "cpu_ms": 0.461,
+        "cuda_ms": 23.007
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            8,
+            12544,
+            12544
+          ],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::softmax",
+          "duration_us": 23007.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "_softmax",
+      "timing": {
+        "cpu_ms": 0.449,
+        "cuda_ms": 23.007
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            8,
+            12544,
+            12544
+          ],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::_softmax",
+          "duration_us": 23007.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "aten",
+      "module": "sum",
+      "timing": {
+        "cpu_ms": 0.091,
+        "cuda_ms": 10.865
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [
+          [
+            1,
+            8,
+            12544,
+            12544
+          ],
+          [],
+          [],
+          []
+        ],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "aten::sum",
+          "duration_us": 10865.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::(anonymous namespace)::cunn_SoftMaxForward<4, float, float, float, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, float*, int)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 23.007
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::(anonymous namespace)::cunn_SoftMaxForward<4, float, float, float, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, float*, int)",
+          "duration_us": 23007.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void cutlass",
+      "module": "Kernel<cutlass_80_tensorop_s1688gemm_64x64_32x4_nn_align4>(cutlass_80_tensorop_s1688gemm_64x64_32x4_nn_align4::Params)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 9.923
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_64x64_32x4_nn_align4>(cutlass_80_tensorop_s1688gemm_64x64_32x4_nn_align4::Params)",
+          "duration_us": 9923.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void at",
+      "module": "native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 10.865
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",
+          "duration_us": 2219.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",
+          "duration_us": 2882.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",
+          "duration_us": 2882.0,
+          "type": "custom",
+          "occupancy": 0.0
+        },
+        {
+          "name": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",
+          "duration_us": 2882.0,
+          "type": "custom",
+          "occupancy": 0.0
+        }
+      ]
+    },
+    {
+      "operation": "void cutlass",
+      "module": "Kernel<cutlass_80_tensorop_s1688gemm_256x64_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_256x64_16x4_tn_align4::Params)",
+      "timing": {
+        "cpu_ms": 0.0,
+        "cuda_ms": 0.051
+      },
+      "memory": {
+        "allocated_mb": 0.0,
+        "reserved_mb": 0.0
+      },
+      "shapes": {
+        "inputs": [],
+        "outputs": []
+      },
+      "hardware": {
+        "tensor_core_eligible": false,
+        "compute_utilization_%": 0.0,
+        "memory_bandwidth_%": 0.0,
+        "estimated_flops": 0
+      },
+      "cuda_kernels": [
+        {
+          "name": "void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_256x64_16x4_tn_align4>(cutlass_80_tensorop_s1688gemm_256x64_16x4_tn_align4::Params)",
+          "duration_us": 51.0,
+          "type": "cublas",
+          "occupancy": 0.0
+        }
+      ]
+    }
+  ]
+}

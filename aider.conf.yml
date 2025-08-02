@@ -14,9 +14,9 @@
 
 ## Specify the model to use for the main chat
 # aider --list-models openai
-model: anthropic/claude-3-7-sonnet-latest
+# model: anthropic/claude-3-7-sonnet-latest
 # model: anthropic/claude-3-5-sonnet-20240620
-# model: openai/o1-preview
+model: openai/o4-mini
 
 ## Vertex AI
 # VERTEXAI_PROJECT: personal-435709
@@ -53,7 +53,7 @@ attribute-commit-message-committer: true
 #test: false
 
 ## specify a file to edit (can be used multiple times)
-#file:
+file: [tools/pytorch_op_tracer/SPEC.md]
 
 ## specify a read-only file (can be used multiple times)
 read: [~/personal/CONVENTIONS.md]

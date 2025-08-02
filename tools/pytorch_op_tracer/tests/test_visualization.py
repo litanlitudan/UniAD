@@ -6,8 +6,8 @@ import torch.nn as nn
 import sys
 import os
 
-# Add package to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core import OperationTracer
 from core.data_structures import TraceNode, TensorInfo

@@ -234,10 +234,62 @@ UniAD includes a comprehensive PyTorch operation tracing tool for analyzing mode
 - **Operation Tracing**: Hooks into PyTorch modules to trace all forward operations
 - **UniAD Task Head Analysis**: Specialized tracking for all 5 task heads (track, seg, motion, occ, planning)
 - **Memory Profiling**: Critical for understanding UniAD's 30-50GB GPU memory requirements
-- **Data Type Analysis**: Track fp32/fp16/int8 operations and mixed precision opportunities
+- **Data Type Analysis**: Track fp32/fp16/bf16/int8 operations and mixed precision opportunities
 - **BEV Feature Tracking**: Specialized analysis for BEV encoder/decoder operations
 - **Temporal Analysis**: Visualize multi-frame temporal queue processing
-- **Mermaid Visualization**: Generate clear dataflow diagrams with shape annotations
+- **Mermaid Visualization**: Generate clear dataflow diagrams with shape and dtype annotations
+- **Hierarchical Visualization**: Top-level view with expandable modules for detailed analysis
+
+#### Package Structure
+```
+pytorch_op_tracer/
+├── core/                    # Core tracing functionality
+│   ├── tracer.py           # Main OperationTracer with UniAD support
+│   ├── shape_recorder.py   # Tensor shape and dtype recording
+│   ├── data_structures.py  # TraceNode with UniAD-specific fields
+│   └── hierarchy_analyzer.py # Module hierarchy analysis
+├── analyzers/              # Analysis modules
+│   ├── trace_analyzer.py   # Comprehensive analysis
+│   ├── multi_head_analyzer.py  # UniAD task head analysis
+│   ├── temporal_analyzer.py    # Temporal queue analysis
+│   ├── bev_analyzer.py        # BEV feature analysis
+│   ├── memory_profiler.py     # Memory profiling
+│   └── dtype_analyzer.py      # Data type analysis
+├── visualizers/            # Visualization modules
+│   └── mermaid_visualizer.py  # Mermaid diagram generation
+├── utils/                  # Utilities
+│   └── model_utils.py      # Model loading utilities
+└── trace_ops.py           # Main CLI script
+```
+
+#### Command Line Options
+
+**Model Configuration**:
+- `--config`: Path to UniAD config file (required)
+- `--checkpoint`: Path to model checkpoint
+- `--stage`: UniAD stage (1: perception, 2: end-to-end)
+- `--test-mode`: Run with dummy model for testing
+
+**Tracing Options**:
+- `--task-heads`: Task heads to trace (default: all)
+- `--temporal-frames`: Number of temporal frames (default: 3)
+- `--trace-backward`: Trace backward pass
+- `--filter-ops`: Filter specific operations
+- `--max-nodes`: Maximum nodes to visualize (default: 50)
+
+**Shape and Data Type Options**:
+- `--show-shapes`: Show tensor shapes (default: True)
+- `--shape-format`: Shape display format (full/compact/semantic)
+- `--show-dtype`: Show tensor data types (default: True)
+- `--track-dtype`: Track data type conversions
+- `--mixed-precision`: Simulate mixed precision (fp16/bf16/int8)
+- `--dtype-memory-analysis`: Analyze memory impact of different data types
+
+**Analysis Options**:
+- `--memory-profile`: Enable detailed memory profiling
+- `--bev-focus`: Focus analysis on BEV operations
+- `--visualize-temporal`: Visualize temporal flow
+- `--expand-modules`: Expand specific modules in visualization
 
 #### Basic Usage
 ```bash
@@ -248,7 +300,7 @@ python tools/pytorch_op_tracer/trace_ops.py \
     --stage 2 \
     --output trace_analysis.md
 
-# Focus on specific task heads
+# Focus on specific task heads with memory profiling
 python tools/pytorch_op_tracer/trace_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
     --checkpoint ckpts/uniad_base_e2e.pth \
@@ -256,45 +308,111 @@ python tools/pytorch_op_tracer/trace_ops.py \
     --memory-profile \
     --output task_analysis.md
 
-# Analyze BEV operations
+# Analyze BEV operations with expanded view
 python tools/pytorch_op_tracer/trace_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
     --checkpoint ckpts/uniad_base_e2e.pth \
     --bev-focus \
     --filter-ops BEVFormer BEVEncoder \
+    --expand-modules BEVFormer \
     --output bev_analysis.md
 
-# Mixed precision analysis
+# Mixed precision analysis with dtype tracking
 python tools/pytorch_op_tracer/trace_ops.py \
     --config projects/configs/stage2_e2e/base_e2e.py \
     --checkpoint ckpts/uniad_base_e2e.pth \
     --mixed-precision fp16 \
     --dtype-memory-analysis \
+    --track-dtype \
     --output mixed_precision.md
+
+# Shape transformation analysis
+python tools/pytorch_op_tracer/trace_ops.py \
+    --config projects/configs/stage2_e2e/base_e2e.py \
+    --checkpoint ckpts/uniad_base_e2e.pth \
+    --track-shape-changes \
+    --shape-format semantic \
+    --output shape_analysis.md
 ```
 
 #### Output
 The tool generates comprehensive Markdown reports containing:
-- Summary statistics (operations, memory usage, compute time)
-- Task head memory/compute breakdown
-- Dataflow visualization with tensor shapes (e.g., `[1,256,200,200]@fp16`)
-- Memory heatmaps identifying bottlenecks
-- Data type distribution and conversion analysis
-- Mixed precision optimization recommendations
+- **Summary Statistics**: Total operations, memory usage, compute time
+- **Task Head Analysis**: Memory and compute breakdown by task head
+- **Dataflow Visualization**: Mermaid diagrams with tensor shapes and dtypes (e.g., `[1,256,200,200]@fp16`)
+- **Memory Heatmap**: Visual representation of memory consumers
+- **Data Type Analysis**: Dtype distribution, conversions, and memory impact
+- **Mixed Precision Recommendations**: Optimization opportunities
+- **Shape Transformations**: How tensor shapes change through the network
+- **Hierarchical Views**: Expandable module visualization for detailed analysis
+
+#### Data Type Support
+
+The tracer supports comprehensive data type analysis:
+
+**Supported Types**:
+- **Floating Point**: fp32, fp16, bf16, fp64
+- **Integer**: int8, int16, int32, int64, uint8
+- **Other**: bool, complex64, complex128
+
+**Memory Impact Analysis**:
+| Data Type | Bytes/Element | Memory Reduction vs FP32 |
+|-----------|---------------|-------------------------|
+| float32   | 4             | 0% (baseline)           |
+| float16   | 2             | 50%                     |
+| bfloat16  | 2             | 50%                     |
+| int8      | 1             | 75%                     |
+
+**Mixed Precision Configurations**:
+1. **default**: All components use float32
+2. **mixed_precision**: Backbone/BEV in FP16, task heads in FP32
+3. **bfloat16**: Backbone/BEV in BF16, task heads in FP32
+4. **int8_quantized**: Backbone quantized to INT8, others in FP16/FP32
 
 #### Installation
 ```bash
-# Install as package
+# Install as package with all dependencies
 cd tools/pytorch_op_tracer
 pip install -e .
 
-# Or use directly
+# With visualization support
+pip install -e ".[visualization]"
+
+# With full UniAD support
+pip install -e ".[uniad]"
+
+# Or use directly without installation
 export PYTHONPATH=$PYTHONPATH:$(pwd)/tools/pytorch_op_tracer
 ```
 
+#### Advanced Features
+
+**Hierarchical Visualization**:
+- **Top-Level View**: Shows major modules and connections
+- **Expanded View**: Detailed operations within specific modules
+- **Auto-Expansion**: Based on memory usage or module patterns
+
+**Temporal Analysis**:
+- Track multi-frame BEV feature aggregation
+- Visualize temporal self-attention patterns
+- Analyze queue memory usage (Stage 1: 5 frames, Stage 2: 3 frames)
+
+**Task Head Dependencies**:
+- Visualize data flow between task heads
+- Track shared features and dependencies
+- Analyze task-specific memory patterns
+
+**Memory Optimization**:
+- Identify memory bottlenecks
+- Suggest mixed precision strategies
+- Calculate potential memory savings
+- Profile activation memory vs parameter memory
+
 This tool is invaluable for:
-- Understanding memory bottlenecks in UniAD
-- Optimizing mixed precision training
-- Debugging shape mismatches
+- Understanding memory bottlenecks in UniAD (critical for 30-50GB usage)
+- Optimizing mixed precision training strategies
+- Debugging tensor shape mismatches and transformations
 - Analyzing compute distribution across task heads
 - Planning memory optimization strategies
+- Visualizing complex multi-task architectures
+- Comparing Stage 1 vs Stage 2 architectures

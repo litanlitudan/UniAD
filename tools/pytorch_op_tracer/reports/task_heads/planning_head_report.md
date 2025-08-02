@@ -23,10 +23,10 @@ The Planning Head (PlanningHeadSingleMode) represents the culmination of UniAD's
 
 ```mermaid
 graph TB
-    subgraph "Upstream Modules"
-        TrackHead["Track Head<br/>3D Detection & Tracking"]
-        MotionHead["Motion Head<br/>Multi-Agent Prediction"]
-        OccHead["Occupancy Head<br/>Future Occupancy"]
+    subgraph "Upstream Modules (Containers)"
+        TrackHead["BEVFormerTrackHead<br/>3D Detection & Tracking<br/>Container: ~337MB"]
+        MotionHead["MotionHead<br/>Multi-Agent Prediction<br/>Container: ~240MB"]
+        OccHead["OccHead<br/>Future Occupancy<br/>Container: ~120MB"]
     end
     
     subgraph "Direct Inputs to Planning"
@@ -36,11 +36,40 @@ graph TB
         EgoFeature["Ego Track Query<br/>[1, 1, 256]@fp32<br/>From Track Head"]
     end
     
-    subgraph "Planning Head Components"
-        GCN["Goal Candidate Network<br/>Memory: 23.4MB"]
-        IE["Interaction Encoder<br/>Memory: 45.6MB"]
-        TP["Trajectory Planner<br/>Memory: 67.8MB"]
-        SC["Safety Checker<br/>Memory: 12.3MB"]
+    subgraph "PlanningHeadSingleMode (Container)"
+        PHC["PlanningHeadSingleMode<br/>Container Module<br/>Total Memory: ~145MB"]
+        
+        subgraph "Internal Components"
+            subgraph "Goal Processing"
+                GCN["GoalCandidateNetwork<br/>Module Container<br/>Memory: 23.4MB"]
+                GoalEnc["Goal Encoder<br/>Linear Layers"]
+                GCN --> GoalEnc
+            end
+            
+            subgraph "Interaction Module"
+                IE["InteractionEncoder<br/>Container Module<br/>Memory: 45.6MB"]
+                IEMHA["MultiheadAttention<br/>8 heads"]
+                IEFFN["FFN Network"]
+                IE --> IEMHA
+                IE --> IEFFN
+            end
+            
+            subgraph "Trajectory Generation"
+                TP["TrajectoryPlanner<br/>Container Module<br/>Memory: 67.8MB"]
+                TPLSTM["LSTM Decoder"]
+                TPMLP["Position MLP"]
+                TP --> TPLSTM
+                TP --> TPMLP
+            end
+            
+            subgraph "Safety Module"
+                SC["SafetyChecker<br/>Container Module<br/>Memory: 12.3MB"]
+                SCConv["Conv Layers"]
+                SCPool["Pooling"]
+                SC --> SCConv
+                SC --> SCPool
+            end
+        end
     end
     
     TrackHead --> AgentFeatures
@@ -50,21 +79,23 @@ graph TB
     MotionHead --> Motion
     OccHead --> Occ
     
-    Motion --> IE
-    Occ --> SC
-    AgentFeatures --> IE
-    EgoFeature --> TP
+    Motion --> PHC
+    Occ --> PHC
+    AgentFeatures --> PHC
+    EgoFeature --> PHC
     
-    GCN --> TP
-    IE --> TP
-    TP --> SC
+    PHC --> IE
+    GoalEnc --> TP
+    IEFFN --> TP
+    TPMLP --> SC
     
-    SC --> Output["Ego Trajectory<br/>[1, 6, 2]"]
+    SCPool --> Output["Ego Trajectory<br/>[1, 6, 2]"]
     
     style TrackHead fill:#ffcccc,stroke:#333,stroke-width:2px
     style MotionHead fill:#ccffcc,stroke:#333,stroke-width:2px
     style OccHead fill:#ccccff,stroke:#333,stroke-width:2px
-    style TP fill:#99ff99,stroke:#333,stroke-width:3px
+    style PHC fill:#ffffcc,stroke:#333,stroke-width:3px
+    style TP fill:#99ff99,stroke:#333,stroke-width:2px
     style IE fill:#99ccff,stroke:#333,stroke-width:2px
 ```
 
@@ -98,47 +129,92 @@ graph TB
 
 ```mermaid
 graph TB
-    subgraph "Trajectory Planner Details"
-        subgraph "Goal Processing"
+    subgraph "TrajectoryPlanner Module (Hierarchical)"
+        TPC["TrajectoryPlanner<br/>Container Module<br/>Total: 67.8MB"]
+        
+        subgraph "Goal Processing Layer"
             Goals["Goal Candidates<br/>[1, 20, 2]@fp32"]
-            GE["Goal Encoding<br/>[1, 20, 128]@fp32<br/>Mem: 8.7MB"]
+            GE["Linear Goal Encoder<br/>[2 → 128]<br/>Mem: 8.7MB"]
+            GN["LayerNorm"]
         end
         
-        subgraph "Multi-Head Attention"
-            QKV["Q,K,V Projection<br/>Mem: 15.2MB"]
-            MHA["8-Head Attention<br/>Mem: 18.9MB"]
-            Concat["Head Concatenation<br/>Mem: 6.4MB"]
+        subgraph "Attention Module"
+            TPMHA["MultiheadAttention<br/>Container Module"]
+            subgraph "Linear Projections"
+                QLinear["Q Linear<br/>[768, 256]"]
+                KLinear["K Linear<br/>[256, 256]"]
+                VLinear["V Linear<br/>[256, 256]"]
+                OutLinear["Out Linear<br/>[256, 768]"]
+            end
+            AttComp["Attention Computation<br/>8 heads @ 32 dims"]
+            Concat["Head Concatenation"]
         end
         
-        subgraph "Trajectory Decoder"
-            LSTM["LSTM Decoder<br/>Mem: 22.3MB"]
-            MLP["Position MLP<br/>Mem: 12.1MB"]
+        subgraph "Recurrent Decoder"
+            LSTM["LSTM Module<br/>Container"]
+            LSTMCell["LSTMCell<br/>[768, 512]<br/>Mem: 22.3MB"]
+            Hidden["Hidden State<br/>[1, 512]"]
         end
         
+        subgraph "Output Generation"
+            MLP["Sequential MLP<br/>Container"]
+            FC1["Linear [512, 256]"]
+            Act["ReLU"]
+            FC2["Linear [256, 2]<br/>X,Y coords"]
+        end
+        
+        TPC --> Goals
         Goals --> GE
-        GE --> QKV
-        QKV --> MHA
-        MHA --> Concat
-        Concat --> LSTM
-        LSTM --> MLP
-        MLP --> Traj["Trajectory<br/>[1, 6, 2]"]
+        GE --> GN
+        GN --> TPMHA
+        
+        TPMHA --> QLinear
+        TPMHA --> KLinear  
+        TPMHA --> VLinear
+        QLinear --> AttComp
+        KLinear --> AttComp
+        VLinear --> AttComp
+        AttComp --> Concat
+        Concat --> OutLinear
+        
+        OutLinear --> LSTM
+        LSTM --> LSTMCell
+        LSTMCell --> Hidden
+        Hidden --> MLP
+        
+        MLP --> FC1
+        FC1 --> Act
+        Act --> FC2
+        FC2 --> Traj["Trajectory<br/>[1, 6, 2]"]
     end
     
-    style MHA fill:#faa,stroke:#f00,stroke-width:2px
+    style TPC fill:#ffffee,stroke:#333,stroke-width:3px
+    style TPMHA fill:#faa,stroke:#f00,stroke-width:2px
     style LSTM fill:#aaf,stroke:#00f,stroke-width:2px
 ```
 
 ## Memory and Compute Analysis
 
-### Memory Heatmap
+### Hierarchical Memory Distribution
 
 ```
-Component                      | Memory (MB)  | Percentage | Visual
+Module                         | Memory (MB)  | Percentage | Visual
 ------------------------------ | ------------ | ---------- | ----------------------------------------
-Trajectory Planner            | 67.8         | 46.7       | ███████████████████████████████████████
-Interaction Encoder           | 45.6         | 31.4       | ███████████████████████████░░░░░░░░░░░░
-Goal Candidate Network        | 23.4         | 16.1       | ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░
-Safety Checker                | 12.3         | 8.5        | ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+PlanningHeadSingleMode        | 145.3        | 100.0      | ████████████████████████████████████████
+├─ TrajectoryPlanner          | 67.8         | 46.7       | ███████████████████░░░░░░░░░░░░░░░░░░░░
+│  ├─ LSTM Decoder           | 22.3         | 15.3       | ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  ├─ MultiheadAttention     | 18.9         | 13.0       | █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  ├─ Linear Projections     | 15.2         | 10.5       | ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  └─ Position MLP           | 11.4         | 7.8        | ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+├─ InteractionEncoder         | 45.6         | 31.4       | █████████████░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  ├─ MultiheadAttention     | 28.4         | 19.5       | ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  └─ FFN Network            | 17.2         | 11.8       | █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+├─ GoalCandidateNetwork       | 23.4         | 16.1       | ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  ├─ Goal Encoder           | 8.7          | 6.0        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  └─ Goal Refinement        | 14.7         | 10.1       | ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+└─ SafetyChecker              | 8.5          | 5.8        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   ├─ Conv Layers            | 6.2          | 4.3        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   └─ Pooling & Reduction   | 2.3          | 1.6        | █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 -----------------------------------------------------------------------------------------------
 Total                         | 145.3        | 100.0      | ████████████████████████████████████████
 ```

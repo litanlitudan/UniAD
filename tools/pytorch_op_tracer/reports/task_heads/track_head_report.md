@@ -26,75 +26,141 @@ The Track Head (BEVFormerTrackHead) is the foundational task head in UniAD, resp
 graph TB
     BEV["BEV Features<br/>[1, 256, 200, 200]@fp32<br/>~39MB"]
     
-    subgraph "Track Head"
-        QE["Query Embedding<br/>[900, 256]@fp32<br/>Mem: 0.9MB"]
-        PE["Position Encoding<br/>[900, 256]@fp32<br/>Mem: 0.9MB"]
+    subgraph "BEVFormerTrackHead (Container)"
+        THC["BEVFormerTrackHead<br/>Total Memory: ~337MB<br/>Container Module"]
         
-        DA["Detection & Association<br/>6 Decoder Layers<br/>@fp32<br/>Mem: 89.4MB"]
-        
-        MB["Memory Bank<br/>Track History<br/>[900, 256, 8]@fp32<br/>Mem: 7.0MB"]
-        
-        Reg["Regression Head<br/>[300, 10]@fp32<br/>Mem: 0.01MB"]
-        Cls["Classification Head<br/>[300, 10]@fp32<br/>Mem: 0.01MB"]
+        subgraph "Internal Components"
+            QE["Query Embedding<br/>[900, 256]@fp32<br/>Mem: 0.9MB"]
+            PE["Position Encoding<br/>[900, 256]@fp32<br/>Mem: 0.9MB"]
+            
+            subgraph "Transformer Decoder"
+                TD["TransformerDecoder<br/>6 layers<br/>Total: 280MB"]
+                
+                subgraph "Layer Structure"
+                    SA["SelfAttention<br/>6× @ 18.7MB"]
+                    CA["CrossAttention<br/>6× @ 24.3MB"]
+                    FFN["FeedForward<br/>6× @ 12.1MB"]
+                end
+            end
+            
+            MB["Memory Bank<br/>Track History<br/>[900, 256, 8]@fp32<br/>Mem: 7.0MB"]
+            
+            subgraph "Output Heads"
+                Reg["Linear (Regression)<br/>[300, 10]@fp32<br/>Mem: 0.01MB"]
+                Cls["Linear (Classification)<br/>[300, 10]@fp32<br/>Mem: 0.01MB"]
+            end
+        end
     end
     
-    BEV --> DA
-    QE --> DA
-    PE --> DA
-    MB --> DA
-    DA --> Reg
-    DA --> Cls
+    BEV --> THC
+    THC --> TD
+    QE --> TD
+    PE --> TD
+    MB --> TD
+    TD --> SA
+    TD --> CA
+    TD --> FFN
+    SA --> Reg
+    CA --> Reg
+    FFN --> Cls
     
     Reg --> Output["Tracked Objects<br/>[300, 10]@fp32"]
     Cls --> Output
     
-    style DA fill:#ff9999,stroke:#333,stroke-width:3px
+    style THC fill:#ffeeee,stroke:#333,stroke-width:3px
+    style TD fill:#ff9999,stroke:#333,stroke-width:2px
     style MB fill:#ffcc99,stroke:#333,stroke-width:2px
 ```
 
-### Expanded Decoder View
+### Expanded Decoder View (Single Layer)
 
 ```mermaid
 graph TB
-    subgraph "Decoder Layer Details"
-        Input["Query Features<br/>[1, 900, 256]@fp32"]
+    subgraph "TransformerDecoderLayer (1 of 6)"
+        TDL["TransformerDecoderLayer<br/>Container Module<br/>Memory: ~55MB"]
         
-        SA["Self-Attention<br/>Track Association<br/>@fp32<br/>Mem: 18.7MB"]
+        subgraph "Layer Components"
+            Input["Query Features<br/>[1, 900, 256]@fp32"]
+            
+            subgraph "MultiheadAttention (Self)"
+                MHSA["MultiheadAttention<br/>8 heads, d=256"]
+                QSA["Q Linear: [256, 256]"]
+                KSA["K Linear: [256, 256]"]
+                VSA["V Linear: [256, 256]"]
+                OSA["Out Linear: [256, 256]"]
+                MHSA --> QSA
+                MHSA --> KSA
+                MHSA --> VSA
+                QSA --> OSA
+                KSA --> OSA
+                VSA --> OSA
+            end
+            
+            subgraph "MultiheadAttention (Cross)"
+                MHCA["MultiheadAttention<br/>8 heads, d=256"]
+                QCA["Q Linear: [256, 256]"]
+                KCA["K Linear: [256, 256]"]
+                VCA["V Linear: [256, 256]"]
+                OCA["Out Linear: [256, 256]"]
+                MHCA --> QCA
+                MHCA --> KCA
+                MHCA --> VCA
+                QCA --> OCA
+                KCA --> OCA
+                VCA --> OCA
+            end
+            
+            subgraph "FFN Module"
+                FFN["FFN Container"]
+                FC1["Linear: [256, 2048]"]
+                Act["ReLU Activation"]
+                Drop["Dropout: 0.1"]
+                FC2["Linear: [2048, 256]"]
+                FFN --> FC1
+                FC1 --> Act
+                Act --> Drop
+                Drop --> FC2
+            end
+            
+            Norm1["LayerNorm@fp32"]
+            Norm2["LayerNorm@fp32"]
+            Norm3["LayerNorm@fp32"]
+        end
         
-        CA["Cross-Attention<br/>BEV Feature Query<br/>@fp32<br/>Mem: 24.3MB"]
-        
-        FFN["Feed Forward<br/>Feature Refinement<br/>@fp32<br/>Mem: 12.1MB"]
-        
-        Norm1["Layer Norm@fp32"]
-        Norm2["Layer Norm@fp32"]
-        Norm3["Layer Norm@fp32"]
-        
-        Input --> SA
-        SA --> Norm1
-        Norm1 --> CA
-        CA --> Norm2
+        Input --> TDL
+        TDL --> MHSA
+        OSA --> Norm1
+        Norm1 --> MHCA
+        OCA --> Norm2
         Norm2 --> FFN
-        FFN --> Norm3
+        FC2 --> Norm3
         Norm3 --> Output["Refined Queries<br/>[1, 900, 256]@fp32"]
     end
     
-    style SA fill:#faa,stroke:#f00,stroke-width:2px
-    style CA fill:#aaf,stroke:#00f,stroke-width:2px
+    style TDL fill:#ffeeee,stroke:#333,stroke-width:3px
+    style MHSA fill:#faa,stroke:#f00,stroke-width:2px
+    style MHCA fill:#aaf,stroke:#00f,stroke-width:2px
 ```
 
 ## Memory Analysis
 
-### Memory Distribution
+### Hierarchical Memory Distribution
 
 ```
-Component                      | Memory (MB)  | Percentage | Visual
+Module                         | Memory (MB)  | Percentage | Visual
 ------------------------------ | ------------ | ---------- | ----------------------------------------
-Cross-Attention (6 layers)    | 145.8        | 43.3       | ███████████████████████████████████████
-Self-Attention (6 layers)     | 112.2        | 33.3       | █████████████████████████████░░░░░░░░░░
-Memory Bank                   | 23.6         | 7.0        | ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-Feed Forward (6 layers)       | 72.6         | 21.6       | ████████████████████░░░░░░░░░░░░░░░░░░░
-Regression Head               | 15.8         | 4.7        | ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-Query/Position Embedding      | 20.8         | 6.2        | █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+BEVFormerTrackHead (Container)| 336.8        | 100.0      | ████████████████████████████████████████
+├─ TransformerDecoder         | 280.0        | 83.1       | █████████████████████████████████░░░░░░
+│  ├─ CrossAttention (6×)     | 145.8        | 43.3       | █████████████████░░░░░░░░░░░░░░░░░░░░░░
+│  │  ├─ MultiheadAttn        | 120.0        | 35.6       | ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░
+│  │  └─ Linear Layers        | 25.8         | 7.7        | ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  ├─ SelfAttention (6×)      | 112.2        | 33.3       | █████████████░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  │  ├─ MultiheadAttn        | 90.0         | 26.7       | ███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  │  └─ Linear Layers        | 22.2         | 6.6        | ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+│  └─ FFN (6×)                | 72.6         | 21.6       | █████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+├─ Memory Bank                | 23.6         | 7.0        | ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+├─ Output Heads               | 15.8         | 4.7        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+└─ Embeddings                 | 17.4         | 5.2        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 -----------------------------------------------------------------------------------------------
 Total                         | 336.8        | 100.0      | ████████████████████████████████████████
 ```

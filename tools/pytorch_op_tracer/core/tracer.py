@@ -99,10 +99,44 @@ class OperationTracer:
     
     def register_hooks(self):
         """Register hooks on model modules"""
+        # Define which modules are "meaningful" - either leaf modules or important containers
+        meaningful_modules = set()
+        
+        # Patterns for meaningful intermediate modules in UniAD
+        important_patterns = [
+            'BEVFormer', 'BEVEncoder', 'BEVDecoder',
+            'TrackHead', 'MotionHead', 'OccHead', 'PlanningHead', 'SegHead',
+            'PansegformerHead', 'BEVFormerTrackHead',
+            'Transformer', 'Encoder', 'Decoder',
+            'SelfAttention', 'CrossAttention', 'MultiheadAttention',
+            'TemporalSelfAttention', 'SpatialCrossAttention',
+            'ResNet', 'FPN', 'ConvModule',
+            'FFN', 'MLP',
+        ]
+        
         for name, module in self.model.named_modules():
-            if len(list(module.children())) == 0:  # Leaf modules only
-                hook = module.register_forward_hook(self._create_forward_hook(name))
-                self.hooks.append(hook)
+            module_class = module.__class__.__name__
+            
+            # Include if it's a leaf module
+            is_leaf = len(list(module.children())) == 0
+            
+            # Include if it matches important patterns
+            is_important = any(pattern in module_class for pattern in important_patterns)
+            
+            # Include if it's a task head module
+            is_task_head = any(head in name for head in ['track_head', 'seg_head', 'motion_head', 
+                                                         'occ_head', 'planning_head', 'pts_bbox_head'])
+            
+            # Include if it's a BEV-related module
+            is_bev_module = 'bev' in name.lower() or 'bev' in module_class.lower()
+            
+            if is_leaf or is_important or is_task_head or is_bev_module:
+                meaningful_modules.add((name, module))
+        
+        # Register hooks on meaningful modules
+        for name, module in meaningful_modules:
+            hook = module.register_forward_hook(self._create_forward_hook(name))
+            self.hooks.append(hook)
     
     def remove_hooks(self):
         """Remove all registered hooks"""

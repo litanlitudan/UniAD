@@ -6,7 +6,52 @@ The BEVFormer encoder is the cornerstone of UniAD's perception system, transform
 
 ## Architecture
 
-### Core Components
+### Hierarchical Component Structure
+
+```mermaid
+graph TB
+    subgraph "BEVFormer Container"
+        BFC["BEVFormer<br/>Container Module<br/>Total Memory: ~800MB"]
+        
+        subgraph "Image Backbone"
+            RN["ResNet-101<br/>Container<br/>~200MB"]
+            FPN["FPN<br/>Multi-scale Features<br/>~77MB"]
+            RN --> FPN
+        end
+        
+        subgraph "BEVFormerEncoder"
+            ENC["BEVFormerEncoder<br/>Container Module<br/>6 Layers"]
+            
+            subgraph "Layer Components (×6)"
+                subgraph "BEVFormerLayer"
+                    TSA["TemporalSelfAttention<br/>Module Container<br/>~67MB per layer"]
+                    SCA["SpatialCrossAttention<br/>Module Container<br/>~50MB per layer"]
+                    FFN["FeedForward<br/>Module Container<br/>~17MB per layer"]
+                    
+                    LN1["LayerNorm"]
+                    LN2["LayerNorm"]
+                    LN3["LayerNorm"]
+                end
+            end
+        end
+        
+        BFC --> RN
+        FPN --> ENC
+        ENC --> TSA
+        TSA --> LN1
+        LN1 --> SCA
+        SCA --> LN2
+        LN2 --> FFN
+        FFN --> LN3
+    end
+    
+    style BFC fill:#ffeecc,stroke:#333,stroke-width:3px
+    style ENC fill:#ffcc99,stroke:#333,stroke-width:2px
+    style TSA fill:#ff9999,stroke:#333,stroke-width:2px
+    style SCA fill:#9999ff,stroke:#333,stroke-width:2px
+```
+
+### Core Module Specifications
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -16,17 +61,6 @@ The BEVFormer encoder is the cornerstone of UniAD's perception system, transform
 │ • Feature Dimension: 256                                      │
 │ • 6 Encoder Layers with TSA + SCA                           │
 │ • Multi-scale processing (4 levels)                          │
-└──────────────────────────────────────────────────────────────┘
-                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│                    BEVFormerLayer                             │
-├──────────────────────────────────────────────────────────────┤
-│  1. Temporal Self-Attention (TSA)                            │
-│  2. Layer Norm                                               │
-│  3. Spatial Cross-Attention (SCA)                            │
-│  4. Layer Norm                                               │
-│  5. Feed-Forward Network (FFN)                               │
-│  6. Layer Norm                                               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,22 +86,53 @@ ref_2d = get_reference_points(
 )  # Shape: (BS, 200*200, 1, 2)
 ```
 
-### 2. Temporal Self-Attention (TSA)
+### 2. Temporal Self-Attention (TSA) - Hierarchical View
 
-Aggregates temporal information from previous BEV features:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  Temporal Self-Attention                     │
-├─────────────────────────────────────────────────────────────┤
-│ Input: BEV Query (t) + Previous BEV (t-1)                  │
-│                         ↓                                    │
-│        Ego-motion Compensation (shift + rotate)             │
-│                         ↓                                    │
-│         Deformable Attention (8 heads, 4 levels)            │
-│                         ↓                                    │
-│              Temporal Feature Aggregation                    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "TemporalSelfAttention Module"
+        TSAC["TemporalSelfAttention<br/>Container Module<br/>Memory: ~67MB"]
+        
+        subgraph "Internal Components"
+            EC["Ego-motion Compensation<br/>Shift + Rotate"]
+            
+            subgraph "MSDeformableAttention"
+                MSDA["MSDeformableAttention<br/>Container"]
+                
+                subgraph "Attention Components"
+                    SP["Sampling Points<br/>Linear [256, 256]"]
+                    AW["Attention Weights<br/>Linear [256, 64]"]
+                    VO["Value Projection<br/>Linear [256, 256]"]
+                    OP["Output Projection<br/>Linear [256, 256]"]
+                end
+                
+                subgraph "Deformable Mechanism"
+                    SO["Sampling Offsets<br/>8 heads × 4 levels<br/>× 4 points"]
+                    DMA["Deformable Attention<br/>Function"]
+                end
+            end
+        end
+        
+        Input["BEV Query (t)<br/>[1, 40000, 256]@fp32"] --> TSAC
+        PrevBEV["Previous BEV (t-1)<br/>[1, 40000, 256]@fp32"] --> EC
+        
+        TSAC --> EC
+        EC --> MSDA
+        MSDA --> SP
+        MSDA --> AW
+        MSDA --> VO
+        
+        SP --> SO
+        AW --> DMA
+        VO --> DMA
+        SO --> DMA
+        
+        DMA --> OP
+        OP --> Output["Temporal Features<br/>[1, 40000, 256]@fp32"]
+    end
+    
+    style TSAC fill:#ffeecc,stroke:#333,stroke-width:3px
+    style MSDA fill:#ff9999,stroke:#333,stroke-width:2px
 ```
 
 **Key Features**:
@@ -75,19 +140,58 @@ Aggregates temporal information from previous BEV features:
 - **Deformable Sampling**: Learns optimal sampling locations
 - **Multi-scale**: Operates on 4 feature levels
 
-### 3. Spatial Cross-Attention (SCA)
+### 3. Spatial Cross-Attention (SCA) - Hierarchical View
 
-Projects multi-camera features into BEV space:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  Spatial Cross-Attention                     │
-├─────────────────────────────────────────────────────────────┤
-│ BEV Query (3D points) → Project to 2D → Sample Features    │
-│      ↓                      ↓                    ↓          │
-│  4 heights            Camera coords       Multi-camera      │
-│  per query            + visibility         aggregation       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "SpatialCrossAttention Module"
+        SCAC["SpatialCrossAttention<br/>Container Module<br/>Memory: ~50MB"]
+        
+        subgraph "Projection Pipeline"
+            RP3D["3D Reference Points<br/>[40000, 4, 3]<br/>4 heights per query"]
+            PROJ["Camera Projection<br/>3D → 2D coords"]
+            VM["Visibility Mask<br/>Check valid cameras"]
+        end
+        
+        subgraph "Attention Mechanism"
+            subgraph "MSDeformableAttention3D"
+                MSDA3D["MSDeformableAttention3D<br/>Container"]
+                
+                subgraph "Per-Camera Processing"
+                    CAM["Camera Loop<br/>6 cameras"]
+                    FS["Feature Sampling<br/>Bilinear interpolation"]
+                    AGG["Multi-camera<br/>Aggregation"]
+                end
+                
+                subgraph "Linear Layers"
+                    QL["Query Linear<br/>[256, 256]"]
+                    VL["Value Linear<br/>[256, 256]"]
+                    OL["Output Linear<br/>[256, 256]"]
+                end
+            end
+        end
+        
+        BEVQuery["BEV Queries<br/>[1, 40000, 256]@fp32"] --> SCAC
+        CamFeats["Camera Features<br/>[6, H×W, 256]@fp32"] --> SCAC
+        
+        SCAC --> RP3D
+        RP3D --> PROJ
+        PROJ --> VM
+        
+        VM --> MSDA3D
+        MSDA3D --> CAM
+        CAM --> FS
+        FS --> AGG
+        
+        BEVQuery --> QL
+        CamFeats --> VL
+        
+        AGG --> OL
+        OL --> Output["BEV Features<br/>[1, 40000, 256]@fp32"]
+    end
+    
+    style SCAC fill:#eeccff,stroke:#333,stroke-width:3px
+    style MSDA3D fill:#9999ff,stroke:#333,stroke-width:2px
 ```
 
 **Two Implementations**:
@@ -164,15 +268,35 @@ def shift_feature(prev_bev, translation, angle, bev_shape):
 
 ## Memory and Computational Analysis
 
-### Memory Breakdown
+### Hierarchical Memory Distribution
 
-| Component | Memory Usage | Notes |
-|-----------|--------------|-------|
-| BEV Features | 200×200×256×4 = 40MB | Per frame |
-| Camera Features | 6×H×W×256×4 | Multi-scale |
-| Attention Maps | N×8×K×4 | N queries, K keys |
-| Reference Points | 200×200×4×3×4 = 1.9MB | 3D coordinates |
-| **Total Encoder** | ~15.2 GB | Stage 1 training |
+```
+Module                         | Memory (MB)  | Percentage | Visual
+------------------------------ | ------------ | ---------- | ----------------------------------------
+BEVFormer (Container)         | 800.0        | 100.0      | ████████████████████████████████████████
+├─ ResNet-101 Backbone        | 200.0        | 25.0       | ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+├─ FPN                        | 77.0         | 9.6        | ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+└─ BEVFormerEncoder           | 523.0        | 65.4       | ██████████████████████████░░░░░░░░░░░░░
+   ├─ TemporalSelfAttn (6×)   | 402.0        | 50.3       | ████████████████████░░░░░░░░░░░░░░░░░░░
+   │  ├─ MSDeformAttn        | 360.0        | 45.0       | ██████████████████░░░░░░░░░░░░░░░░░░░░
+   │  └─ Linear Layers       | 42.0         | 5.3        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   ├─ SpatialCrossAttn (6×)   | 300.0        | 37.5       | ███████████████░░░░░░░░░░░░░░░░░░░░░░░░
+   │  ├─ MSDeformAttn3D      | 270.0        | 33.8       | ██████████████░░░░░░░░░░░░░░░░░░░░░░░░
+   │  └─ Linear Layers       | 30.0         | 3.8        | ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+   └─ FFN Networks (6×)       | 102.0        | 12.8       | █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+-----------------------------------------------------------------------------------------------
+Total                         | 800.0        | 100.0      | ████████████████████████████████████████
+```
+
+### Component Memory Details
+
+| Component | Per Layer | Total (6 layers) | Notes |
+|-----------|-----------|------------------|-------|
+| TemporalSelfAttention | 67MB | 402MB | Deformable attention + projections |
+| SpatialCrossAttention | 50MB | 300MB | 3D-to-2D projection + sampling |
+| FeedForward Network | 17MB | 102MB | 256→2048→256 dimensions |
+| Layer Normalization | 0.1MB | 0.6MB | Negligible memory |
+| **BEV Features** | - | 40MB | [1, 256, 200, 200]@fp32 |
 
 ### Computational Complexity
 

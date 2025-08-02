@@ -4,7 +4,7 @@ This document provides a detailed architectural reference for UniAD (Unified Aut
 
 ## Architecture Overview
 
-### Core Architecture Components
+### Core Architecture Components (Hierarchical View)
 
 ```mermaid
 graph TB
@@ -12,32 +12,76 @@ graph TB
         IMG["Multi-Camera Images<br/>[6, 3, 900, 1600]@fp32"]
     end
     
-    subgraph "Backbone"
-        BB["ResNet-101 + FPN<br/>Memory: ~277MB"]
+    subgraph "Backbone (Container)"
+        BB["ResNet-101<br/>Memory: ~200MB"]
+        FPN["FPN<br/>Memory: ~77MB"]
+        BB --> FPN
     end
     
-    subgraph "BEV Encoder"
-        BEV["BEVFormer<br/>[1, 256, 200, 200]@fp32<br/>Memory: ~800MB"]
+    subgraph "BEV Encoder (Hierarchical)"
+        BEVTop["BEVFormer<br/>Container Module<br/>Total Memory: ~800MB"]
+        subgraph "Internal Structure"
+            TSA["TemporalSelfAttention<br/>6 layers<br/>Memory: ~400MB"]
+            SCA["SpatialCrossAttention<br/>6 layers<br/>Memory: ~300MB"]
+            FFN["FeedForward Networks<br/>6 layers<br/>Memory: ~100MB"]
+        end
+        BEVTop --> TSA
+        TSA --> SCA
+        SCA --> FFN
     end
     
-    subgraph "Task Heads"
-        TH["Track Head<br/>Memory: ~337MB"]
-        SH["Seg Head<br/>Memory: ~197MB"]
-        MH["Motion Head<br/>Memory: ~240MB"]
-        OH["Occ Head<br/>Memory: ~120MB"]
-        PH["Planning Head<br/>Memory: ~145MB"]
+    subgraph "Task Heads (Container + Internals)"
+        subgraph "TrackHead"
+            TH["BEVFormerTrackHead<br/>Container: ~337MB total"]
+            TDec["Track Decoder<br/>6 layers: ~200MB"]
+            TPost["Post-processing<br/>NMS + Tracking: ~137MB"]
+            TH --> TDec
+            TDec --> TPost
+        end
+        
+        subgraph "SegHead"
+            SH["PansegformerHead<br/>Container: ~197MB total"]
+            SDec["Seg Decoder<br/>~150MB"]
+            SMask["Mask Head<br/>~47MB"]
+            SH --> SDec
+            SDec --> SMask
+        end
+        
+        subgraph "MotionHead"
+            MH["MotionHead<br/>Container: ~240MB total"]
+            MEnc["Motion Encoder<br/>~100MB"]
+            MTraj["Trajectory Decoder<br/>~140MB"]
+            MH --> MEnc
+            MEnc --> MTraj
+        end
+        
+        subgraph "OccHead"
+            OH["OccHead<br/>Container: ~120MB total"]
+            OConv["Occ Conv Layers<br/>~80MB"]
+            OPred["Occ Predictor<br/>~40MB"]
+            OH --> OConv
+            OConv --> OPred
+        end
+        
+        subgraph "PlanningHead"
+            PH["PlanningHeadSingleMode<br/>Container: ~145MB total"]
+            PInter["Interaction Module<br/>~85MB"]
+            PTraj["Planning Decoder<br/>~60MB"]
+            PH --> PInter
+            PInter --> PTraj
+        end
     end
     
     IMG --> BB
-    BB --> BEV
-    BEV --> TH
-    BEV --> SH
-    TH --> MH
-    TH --> OH
-    MH --> PH
-    OH --> PH
+    FPN --> BEVTop
+    FFN --> TH
+    FFN --> SH
+    TPost --> MH
+    TPost --> OH
+    MTraj --> PH
+    OPred --> PH
     
-    style BEV fill:#ffcc99,stroke:#333,stroke-width:3px
+    style BEVTop fill:#ffcc99,stroke:#333,stroke-width:3px
     style PH fill:#99ff99,stroke:#333,stroke-width:3px
 ```
 

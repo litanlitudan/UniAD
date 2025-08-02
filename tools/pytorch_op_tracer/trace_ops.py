@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core import OperationTracer
 from analyzers import TraceAnalyzer
 from visualizers import DataflowVisualizer
-from utils import create_dummy_input, load_uniad_model
+from utils import create_dummy_input, load_uniad_model, load_uniad_model_from_text
 
 
 def main():
@@ -106,6 +106,8 @@ def main():
     # Testing mode
     parser.add_argument('--test-mode', action='store_true',
                         help='Run in test mode with dummy model')
+    parser.add_argument('--text-load', action='store_true',
+                        help='Use text-based model loading instead of mmdet3d registry')
     
     args = parser.parse_args()
     
@@ -129,8 +131,12 @@ def main():
         cfg = None
     else:
         try:
-            print(f"Loading UniAD model from {args.config}")
-            model, cfg = load_uniad_model(args.config, args.checkpoint, args.device)
+            if args.text_load:
+                print(f"Loading UniAD model using text-based parser from {args.config}")
+                model, cfg = load_uniad_model_from_text(args.config, args.checkpoint, args.device)
+            else:
+                print(f"Loading UniAD model from {args.config}")
+                model, cfg = load_uniad_model(args.config, args.checkpoint, args.device)
         except ImportError as e:
             print(f"Error: {e}")
             print("Running in fallback mode. Install mmdet3d for full functionality.")

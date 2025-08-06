@@ -130,9 +130,13 @@ def run_trace_command(config: str, output: str, stage: int, checkpoint: Optional
 
 def trace_model_direct(model: Any, device: str = 'cpu', stage: int = 2) -> Tuple[List[Any], Dict[str, Any]]:
     """Directly trace a model and return analysis"""
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    
     from utils import create_dummy_input
-    from core import OperationTracer
-    from analyzers import TraceAnalyzer
+    from core.tracer import OperationTracer
+    from analyzers.trace_analyzer import TraceAnalyzer
     
     # Create dummy input
     if hasattr(model, 'cfg'):
@@ -159,7 +163,11 @@ def trace_model_direct(model: Any, device: str = 'cpu', stage: int = 2) -> Tuple
 def generate_trace_report(trace_nodes: List[Any], analysis: Dict[str, Any], 
                          output_path: str, title: str, approach: str):
     """Generate a trace report from analysis data"""
-    from visualizers import DataflowVisualizer
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    
+    from visualizers.mermaid_visualizer import MermaidVisualizer as DataflowVisualizer
     
     visualizer = DataflowVisualizer(
         show_shapes=True,
@@ -207,7 +215,11 @@ def generate_trace_report(trace_nodes: List[Any], analysis: Dict[str, Any],
 
 def generate_mock_model_reports():
     """Generate reports for mock models using direct tracing"""
-    from utils import load_uniad_model_from_text
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    
+    from utils.model_utils import load_uniad_model_from_text
     
     print("\n=== Generating Mock Model Reports ===\n")
     

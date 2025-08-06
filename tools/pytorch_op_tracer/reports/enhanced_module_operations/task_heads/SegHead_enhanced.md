@@ -2,7 +2,7 @@
 
 **Category**: task_heads
 **Description**: BEV segmentation head for lanes and drivable area
-**Generated**: 2025-08-02 01:00:54
+**Generated**: 2025-08-05 17:24:18
 
 ## Module Statistics
 
@@ -13,7 +13,7 @@
 ## Enhanced Profiling Results
 
 - **Total Operations Profiled**: 34
-- **Total Execution Time**: 0.76 ms
+- **Total Execution Time**: 0.77 ms
 - **Total Estimated FLOPs**: 0
 - **Effective TFLOPS**: 0.000
 

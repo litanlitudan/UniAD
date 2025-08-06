@@ -1,6 +1,6 @@
 # Task_Heads - Enhanced Analysis Summary
 
-**Generated**: 2025-08-02 01:00:59
+**Generated**: 2025-08-05 17:24:24
 
 ## Overview
 
@@ -20,7 +20,7 @@ This category contains 5 modules with detailed operation decomposition analysis.
 
 ### Conv2d
 - **Primitives**: im2col, gemm, bias_add
-- **Hardware**: elementwise_kernel, cublas_gemm/tensor_core, custom_kernel
+- **Hardware**: cublas_gemm/tensor_core, custom_kernel, elementwise_kernel
 - **Fusion**: conv_bias_fusion, conv_relu_fusion
 
 ### Conv3d

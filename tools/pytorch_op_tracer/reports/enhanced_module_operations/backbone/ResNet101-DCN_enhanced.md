@@ -2,7 +2,7 @@
 
 **Category**: backbone
 **Description**: Image backbone with deformable convolutions
-**Generated**: 2025-08-02 01:00:47
+**Generated**: 2025-08-05 17:24:11
 
 ## Module Statistics
 
@@ -13,7 +13,7 @@
 ## Enhanced Profiling Results
 
 - **Total Operations Profiled**: 30
-- **Total Execution Time**: 0.31 ms
+- **Total Execution Time**: 0.30 ms
 - **Total Estimated FLOPs**: 0
 - **Effective TFLOPS**: 0.000
 

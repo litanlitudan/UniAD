@@ -1,6 +1,6 @@
 # Transformer - Enhanced Analysis Summary
 
-**Generated**: 2025-08-02 01:00:49
+**Generated**: 2025-08-05 17:24:14
 
 ## Overview
 
@@ -17,6 +17,6 @@ This category contains 2 modules with detailed operation decomposition analysis.
 
 ### Linear
 - **Primitives**: gemm, bias_add
-- **Hardware**: elementwise_kernel, cublas_gemm/tensor_core
+- **Hardware**: cublas_gemm/tensor_core, elementwise_kernel
 - **Fusion**: gemm_bias_fusion, gemm_relu_fusion
 

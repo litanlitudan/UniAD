@@ -2,7 +2,7 @@
 
 **Category**: task_heads
 **Description**: Ego vehicle trajectory planning
-**Generated**: 2025-08-02 01:00:59
+**Generated**: 2025-08-05 17:24:24
 
 ## Module Statistics
 

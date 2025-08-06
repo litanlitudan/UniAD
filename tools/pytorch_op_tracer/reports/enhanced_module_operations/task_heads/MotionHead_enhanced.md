@@ -2,7 +2,7 @@
 
 **Category**: task_heads
 **Description**: Multi-modal motion prediction for agents
-**Generated**: 2025-08-02 01:00:56
+**Generated**: 2025-08-05 17:24:21
 
 ## Module Statistics
 
@@ -13,7 +13,7 @@
 ## Enhanced Profiling Results
 
 - **Total Operations Profiled**: 42
-- **Total Execution Time**: 0.36 ms
+- **Total Execution Time**: 0.35 ms
 - **Total Estimated FLOPs**: 0
 - **Effective TFLOPS**: 0.000
 

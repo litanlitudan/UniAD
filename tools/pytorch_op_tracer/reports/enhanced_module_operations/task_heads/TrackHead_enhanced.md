@@ -2,7 +2,7 @@
 
 **Category**: task_heads
 **Description**: 3D object detection and tracking head
-**Generated**: 2025-08-02 01:00:51
+**Generated**: 2025-08-05 17:24:16
 
 ## Module Statistics
 
@@ -13,7 +13,7 @@
 ## Enhanced Profiling Results
 
 - **Total Operations Profiled**: 33
-- **Total Execution Time**: 0.27 ms
+- **Total Execution Time**: 0.28 ms
 - **Total Estimated FLOPs**: 0
 - **Effective TFLOPS**: 0.000
 

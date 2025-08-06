@@ -2,7 +2,7 @@
 
 **Category**: backbone
 **Description**: Feature Pyramid Network for multi-scale features
-**Generated**: 2025-08-02 01:00:47
+**Generated**: 2025-08-05 17:24:11
 
 ## Module Statistics
 

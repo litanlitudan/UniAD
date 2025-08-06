@@ -2,7 +2,7 @@
 
 **Category**: bev_encoder
 **Description**: Bird's Eye View transformer encoder with spatio-temporal attention
-**Generated**: 2025-08-02 01:00:48
+**Generated**: 2025-08-05 17:24:12
 
 ## Module Statistics
 

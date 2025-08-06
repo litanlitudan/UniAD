@@ -485,14 +485,15 @@ Analyzes the trace data to provide insights:
 
 ### 3.5 CommandLineInterface
 
-Provides a user-friendly interface:
+Provides a user-friendly interface that updates the specified report file in place (consolidating results) instead of creating new files for each run:
 
 ```
 python tools/analysis_tools/trace_pytorch_ops.py \
     --config CONFIG_PATH \
     --checkpoint CHECKPOINT_PATH \
     --input-shape 1,3,224,224 \
-    --output mermaid_diagram.md
+    --output mermaid_diagram.md \
+    --update-report  # update existing report, merge new results
 ```
 
 Options:

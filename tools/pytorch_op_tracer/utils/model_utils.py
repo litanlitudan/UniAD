@@ -170,8 +170,7 @@ def _build_uniad_track_model(cfg: dict) -> torch.nn.Module:
         return model
         
     except ImportError:
-        # Fallback: create a minimal mock model for tracing purposes
-        return _create_mock_uniad_track_model(cfg)
+        raise ImportError("UniAD modules not available. Please ensure the codebase is properly set up.")
 
 
 def _build_uniad_model(cfg: dict) -> torch.nn.Module:
@@ -216,89 +215,8 @@ def _build_uniad_model(cfg: dict) -> torch.nn.Module:
         return model
         
     except ImportError:
-        # Fallback: create a minimal mock model for tracing purposes
-        return _create_mock_uniad_model(cfg)
+        raise ImportError("UniAD modules not available. Please ensure the codebase is properly set up.")
 
 
-def _create_mock_uniad_track_model(cfg: dict) -> torch.nn.Module:
-    """Create a mock UniADTrack model for testing without mmdet3d"""
-    class MockUniADTrack(torch.nn.Module):
-        def __init__(self, cfg):
-            super().__init__()
-            self.cfg = cfg
-            embed_dims = cfg.get('embed_dims', 256)
-            
-            # Mock backbone
-            self.img_backbone = torch.nn.Sequential(
-                torch.nn.Conv2d(3, 64, 7, stride=2, padding=3),
-                torch.nn.BatchNorm2d(64),
-                torch.nn.ReLU(),
-                torch.nn.MaxPool2d(3, stride=2, padding=1),
-                torch.nn.Conv2d(64, embed_dims, 3, padding=1),
-            )
-            
-            # Mock neck
-            self.img_neck = torch.nn.Sequential(
-                torch.nn.Conv2d(embed_dims, embed_dims, 3, padding=1),
-                torch.nn.BatchNorm2d(embed_dims),
-                torch.nn.ReLU(),
-            )
-            
-            # Mock BEV encoder
-            self.bev_encoder = torch.nn.Sequential(
-                torch.nn.Conv2d(embed_dims, embed_dims, 3, padding=1),
-                torch.nn.BatchNorm2d(embed_dims),
-                torch.nn.ReLU(),
-            )
-            
-            # Mock detection head
-            self.pts_bbox_head = torch.nn.Sequential(
-                torch.nn.Conv2d(embed_dims, embed_dims // 2, 3, padding=1),
-                torch.nn.ReLU(),
-                torch.nn.Conv2d(embed_dims // 2, cfg.get('num_classes', 10), 1),
-            )
-        
-        def forward(self, img, **kwargs):
-            # Simple forward pass for tracing
-            feat = self.img_backbone(img)
-            feat = self.img_neck(feat)
-            bev_feat = self.bev_encoder(feat)
-            output = self.pts_bbox_head(bev_feat)
-            return output
-    
-    return MockUniADTrack(cfg)
 
 
-def _create_mock_uniad_model(cfg: dict) -> torch.nn.Module:
-    """Create a mock UniAD model for testing without mmdet3d"""
-    class MockUniAD(torch.nn.Module):
-        def __init__(self, cfg):
-            super().__init__()
-            self.base_model = _create_mock_uniad_track_model(cfg)
-            embed_dims = cfg.get('embed_dims', 256)
-            
-            # Mock task heads
-            self.seg_head = torch.nn.Conv2d(embed_dims, 4, 1)  # 4 semantic classes
-            self.motion_head = torch.nn.Linear(embed_dims, 12 * 6 * 2)  # 12 steps, 6 modes, 2D
-            self.occ_head = torch.nn.Conv2d(embed_dims, 2, 1)  # binary occupancy
-            self.planning_head = torch.nn.Linear(embed_dims, 6 * 2)  # 6 steps, 2D
-        
-        def forward(self, img, **kwargs):
-            # Get base features
-            base_out = self.base_model(img)
-            
-            # Mock outputs for each head
-            B, C, H, W = base_out.shape
-            bev_feat = base_out
-            
-            outputs = {
-                'track': base_out,
-                'seg': self.seg_head(bev_feat),
-                'motion': self.motion_head(bev_feat.mean(dim=[2, 3])),
-                'occ': self.occ_head(bev_feat),
-                'planning': self.planning_head(bev_feat.mean(dim=[2, 3])),
-            }
-            
-            return outputs
-    
-    return MockUniAD(cfg)

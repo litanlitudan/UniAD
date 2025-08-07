@@ -9,7 +9,7 @@ try:
     from mmcv.runner import load_checkpoint
     from mmdet3d.models import build_model
     MMDET3D_AVAILABLE = True
-except ImportError:
+except (ImportError, ValueError):
     MMDET3D_AVAILABLE = False
     Config = None
     build_model = None
@@ -169,7 +169,7 @@ def _build_uniad_track_model(cfg: dict) -> torch.nn.Module:
         
         return model
         
-    except ImportError:
+    except (ImportError, ValueError):
         raise ImportError("UniAD modules not available. Please ensure the codebase is properly set up.")
 
 
@@ -214,7 +214,7 @@ def _build_uniad_model(cfg: dict) -> torch.nn.Module:
         
         return model
         
-    except ImportError:
+    except (ImportError, ValueError):
         raise ImportError("UniAD modules not available. Please ensure the codebase is properly set up.")
 
 

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}} - UniAD Dataflow Visualization</title>
+    {{CSS_THEME}}
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Custom CSS placeholder - will be replaced by template engine */
+        .dataflow-container {
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-color);
+        }
+        .control-panel {
+            width: 320px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+        }
+        .visualization-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        #dataflow-svg {
+            width: 100%;
+            height: 100%;
+            background-color: var(--canvas-bg);
+        }
+        .filter-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .filter-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .node:hover {
+            stroke-width: 3px;
+            filter: brightness(1.1);
+        }
+        .edge {
+            fill: none;
+            stroke: var(--edge-color);
+            stroke-width: 2px;
+            marker-end: url(#arrowhead);
+        }
+        #tooltip {
+            position: absolute;
+            background-color: var(--tooltip-bg);
+            color: var(--tooltip-text);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            max-width: 300px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #666;
+            z-index: 999;
+        }
+        .task-head-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .task-chip {
+            background-color: var(--chip-bg);
+            color: var(--chip-text);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .task-chip.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .control-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .control-btn:hover {
+            background-color: var(--primary-dark, #0056b3);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="dataflow-container">
+        <div class="control-panel">
+            <div class="filter-group">
+                <div class="filter-title">Task Head Filters</div>
+                <div id="task-head-filters" class="task-head-filter"></div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-title">Memory Threshold</div>
+                <input type="range" id="memory-threshold" min="0" max="10000" value="0" style="width: 100%;">
+                <span id="memory-threshold-value">0 MB</span>
+            </div>
+            <div class="filter-group">
+                <div class="filter-title">Search</div>
+                <input type="text" id="search-input" placeholder="Search operations..." style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+            </div>
+            <div class="filter-group">
+                <div class="filter-title">View Controls</div>
+                <button class="control-btn" onclick="expandAllNodes()">Expand All</button>
+                <button class="control-btn" onclick="collapseAllNodes()">Collapse All</button>
+                <button class="control-btn" onclick="resetZoom()">Reset Zoom</button>
+                <button class="control-btn" onclick="exportVisualization()">Export PNG</button>
+            </div>
+            <div class="filter-group">
+                <div class="filter-title">Connection Highlighting</div>
+                <button class="control-btn" onclick="clearHighlights()">Clear Highlights</button>
+                <button class="control-btn" onclick="animatePaths()">Animate Paths</button>
+                <button class="control-btn" onclick="exportPathData()">Export Paths</button>
+                <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary);">
+                    <div>• Click edges to highlight data paths</div>
+                    <div>• Ctrl+Click nodes for path exploration</div>
+                    <div>• Right-click for context menu</div>
+                    <div>• ESC to clear all highlights</div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-title">Statistics</div>
+                <div id="summary-stats"></div>
+            </div>
+        </div>
+        <div class="visualization-area">
+            <div id="loading-overlay" class="loading-overlay" style="display: none;">
+                Loading visualization...
+            </div>
+            <svg id="dataflow-svg"></svg>
+            <div id="tooltip"></div>
+        </div>
+    </div>
+
+    <!-- Interactive Connection Highlighting -->
+    <script src="static/js/interactive.js"></script>
+    
+    <script>
+        // Embed configuration and data
+        // Configuration and data will be injected by template engine
+        const CONFIG = /* {{CONFIG_JSON}} */ {};
+        const DATA = /* {{DATA_JSON}} */ {};
+        const METADATA = /* {{METADATA_JSON}} */ {};
+        
+        /* Custom JavaScript placeholder - will be replaced by template engine */
+        
+        // Initialize dataflow visualization
+        class DataflowVisualization {
+            constructor() {
+                this.svg = d3.select("#dataflow-svg");
+                this.width = window.innerWidth - 320;
+                this.height = window.innerHeight;
+                this.simulation = null;
+                this.nodes = DATA.nodes || [];
+                this.edges = DATA.edges || [];
+                this.filteredNodes = [...this.nodes];
+                this.filteredEdges = [...this.edges];
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupSVG();
+                this.setupFilters();
+                this.setupSummary();
+                this.renderVisualization();
+                this.setupEventListeners();
+                this.initializeConnectionHighlighter();
+            }
+            
+            setupSVG() {
+                // Create main group with zoom behavior
+                this.zoom = d3.zoom()
+                    .scaleExtent([0.1, 3])
+                    .on("zoom", (event) => {
+                        this.mainGroup.attr("transform", event.transform);
+                    });
+                
+                this.svg.call(this.zoom);
+                this.mainGroup = this.svg.append("g");
+                
+                // Define arrowhead marker
+                this.svg.append("defs").append("marker")
+                    .attr("id", "arrowhead")
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 8)
+                    .attr("refY", 0)
+                    .attr("markerWidth", 6)
+                    .attr("markerHeight", 6)
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M0,-5L10,0L0,5")
+                    .attr("fill", "var(--edge-color)");
+            }
+            
+            setupFilters() {
+                // Task head filters
+                const taskHeads = [...new Set(this.nodes.map(n => n.task_head).filter(Boolean))];
+                const taskContainer = d3.select("#task-head-filters");
+                
+                taskHeads.forEach(taskHead => {
+                    taskContainer.append("div")
+                        .attr("class", "task-chip active")
+                        .attr("data-task", taskHead)
+                        .text(taskHead)
+                        .on("click", (event) => {
+                            const chip = d3.select(event.target);
+                            chip.classed("active", !chip.classed("active"));
+                            this.applyFilters();
+                        });
+                });
+                
+                // Memory threshold
+                d3.select("#memory-threshold").on("input", (event) => {
+                    const value = event.target.value;
+                    d3.select("#memory-threshold-value").text(value + " MB");
+                    this.applyFilters();
+                });
+                
+                // Search input
+                d3.select("#search-input").on("input", () => {
+                    this.applyFilters();
+                });
+            }
+            
+            applyFilters() {
+                const selectedTasks = [];
+                d3.selectAll(".task-chip.active").each(function() {
+                    selectedTasks.push(this.getAttribute("data-task"));
+                });
+                
+                const memoryThreshold = +d3.select("#memory-threshold").node().value;
+                const searchQuery = d3.select("#search-input").node().value.toLowerCase();
+                
+                this.filteredNodes = this.nodes.filter(node => {
+                    // Task filter
+                    if (selectedTasks.length > 0 && node.task_head && !selectedTasks.includes(node.task_head)) {
+                        return false;
+                    }
+                    
+                    // Memory filter
+                    if (node.memory_mb < memoryThreshold) {
+                        return false;
+                    }
+                    
+                    // Search filter
+                    if (searchQuery && !node.display_name.toLowerCase().includes(searchQuery)) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                // Filter edges
+                const nodeIds = new Set(this.filteredNodes.map(n => n.id));
+                this.filteredEdges = this.edges.filter(edge => 
+                    nodeIds.has(edge.source) && nodeIds.has(edge.target)
+                );
+                
+                this.renderVisualization();
+            }
+            
+            renderVisualization() {
+                this.showLoading(true);
+                
+                // Clear existing elements
+                this.mainGroup.selectAll("*").remove();
+                
+                if (this.filteredNodes.length === 0) {
+                    this.showMessage("No nodes match current filters");
+                    this.showLoading(false);
+                    return;
+                }
+                
+                // Create force simulation
+                this.simulation = d3.forceSimulation(this.filteredNodes)
+                    .force("link", d3.forceLink(this.filteredEdges)
+                        .id(d => d.id)
+                        .distance(100))
+                    .force("charge", d3.forceManyBody().strength(-500))
+                    .force("center", d3.forceCenter(this.width / 2, this.height / 2))
+                    .force("collision", d3.forceCollide().radius(d => d.size + 10));
+                
+                // Render edges
+                this.renderEdges();
+                
+                // Render nodes
+                this.renderNodes();
+                
+                // Start simulation
+                this.simulation.on("tick", () => this.updatePositions());
+                
+                // Reinitialize connection highlighter with new elements
+                setTimeout(() => {
+                    this.showLoading(false);
+                    this.initializeConnectionHighlighter();
+                }, 500);
+            }
+            
+            renderEdges() {
+                this.edgeElements = this.mainGroup.append("g")
+                    .attr("class", "edges")
+                    .selectAll(".edge")
+                    .data(this.filteredEdges)
+                    .enter().append("line")
+                    .attr("class", "edge");
+            }
+            
+            renderNodes() {
+                this.nodeElements = this.mainGroup.append("g")
+                    .attr("class", "nodes")
+                    .selectAll(".node-group")
+                    .data(this.filteredNodes)
+                    .enter().append("g")
+                    .attr("class", "node-group")
+                    .call(this.createDragBehavior());
+                
+                // Add circles
+                this.nodeElements.append("circle")
+                    .attr("class", "node")
+                    .attr("r", d => d.size || 20)
+                    .attr("fill", d => d.color || "#69b3a2")
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 2)
+                    .on("mouseover", (event, d) => this.showTooltip(event, d))
+                    .on("mouseout", () => this.hideTooltip());
+                
+                // Add labels
+                this.nodeElements.append("text")
+                    .attr("class", "node-label")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", "0.3em")
+                    .text(d => this.truncateText(d.display_name, 15))
+                    .style("font-size", "11px")
+                    .style("fill", "var(--text-primary)")
+                    .style("pointer-events", "none");
+            }
+            
+            updatePositions() {
+                this.edgeElements
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                this.nodeElements
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            }
+            
+            createDragBehavior() {
+                return d3.drag()
+                    .on("start", (event, d) => {
+                        if (!event.active) this.simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x;
+                        d.fy = d.y;
+                    })
+                    .on("drag", (event, d) => {
+                        d.fx = event.x;
+                        d.fy = event.y;
+                    })
+                    .on("end", (event, d) => {
+                        if (!event.active) this.simulation.alphaTarget(0);
+                        d.fx = null;
+                        d.fy = null;
+                    });
+            }
+            
+            showTooltip(event, d) {
+                const tooltip = d3.select("#tooltip");
+                let content = `<strong>${d.display_name}</strong><br>`;
+                
+                if (d.memory_mb) {
+                    content += `Memory: ${d.memory_mb.toFixed(1)} MB<br>`;
+                }
+                if (d.compute_ms) {
+                    content += `Compute: ${d.compute_ms.toFixed(1)} ms<br>`;
+                }
+                if (d.task_head) {
+                    content += `Task Head: ${d.task_head}<br>`;
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px")
+                    .style("opacity", 1);
+            }
+            
+            hideTooltip() {
+                d3.select("#tooltip").style("opacity", 0);
+            }
+            
+            showLoading(show) {
+                d3.select("#loading-overlay").style("display", show ? "flex" : "none");
+            }
+            
+            showMessage(message) {
+                this.mainGroup.append("text")
+                    .attr("x", this.width / 2)
+                    .attr("y", this.height / 2)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "18px")
+                    .style("fill", "var(--text-secondary)")
+                    .text(message);
+            }
+            
+            truncateText(text, maxLength) {
+                return text.length > maxLength ? text.substring(0, maxLength - 3) + "..." : text;
+            }
+            
+            setupSummary() {
+                const summary = DATA.summary || {};
+                const container = d3.select("#summary-stats");
+                
+                const stats = [
+                    { label: "Total Nodes", value: this.nodes.length },
+                    { label: "Total Memory", value: (summary.total_memory_mb || 0).toFixed(1) + " MB" },
+                    { label: "Task Heads", value: summary.task_head_count || 0 }
+                ];
+                
+                stats.forEach(stat => {
+                    const div = container.append("div")
+                        .style("margin-bottom", "8px")
+                        .style("font-size", "12px");
+                    
+                    div.append("div")
+                        .style("font-weight", "500")
+                        .style("color", "var(--text-secondary)")
+                        .text(stat.label);
+                    
+                    div.append("div")
+                        .style("font-weight", "600")
+                        .style("color", "var(--text-primary)")
+                        .text(stat.value);
+                });
+            }
+            
+            setupEventListeners() {
+                window.addEventListener("resize", () => {
+                    this.width = window.innerWidth - 320;
+                    this.height = window.innerHeight;
+                    this.svg.attr("width", this.width).attr("height", this.height);
+                    if (this.simulation) {
+                        this.simulation.force("center", d3.forceCenter(this.width / 2, this.height / 2));
+                        this.simulation.restart();
+                    }
+                });
+            }
+            
+            initializeConnectionHighlighter() {
+                // Wait for elements to be rendered before initializing highlighter
+                if (this.nodeElements && this.edgeElements) {
+                    const config = {
+                        animationSpeed: 750,
+                        enablePathTraversal: true,
+                        enableMultipleHighlights: true
+                    };
+                    
+                    this.connectionHighlighter = initializeConnectionHighlighter(
+                        this.svg,
+                        this.nodeElements,
+                        this.edgeElements,
+                        {
+                            nodes: this.filteredNodes,
+                            edges: this.filteredEdges
+                        },
+                        config
+                    );
+                    
+                    console.log('Connection highlighter initialized for dataflow visualization');
+                } else {
+                    // Retry after a short delay if elements aren't ready
+                    setTimeout(() => this.initializeConnectionHighlighter(), 100);
+                }
+            }
+        }
+        
+        // Global functions for control buttons
+        function expandAllNodes() {
+            console.log("Expand all nodes");
+        }
+        
+        function collapseAllNodes() {
+            console.log("Collapse all nodes");
+        }
+        
+        function resetZoom() {
+            viz.svg.transition().duration(750)
+                .call(viz.zoom.transform, d3.zoomIdentity);
+        }
+        
+        function exportVisualization() {
+            console.log("Export visualization");
+        }
+        
+        function clearHighlights() {
+            if (window.connectionHighlighter) {
+                window.connectionHighlighter.clearAllHighlights();
+            }
+        }
+        
+        function animatePaths() {
+            if (window.connectionHighlighter) {
+                window.connectionHighlighter.animateActivePaths();
+            }
+        }
+        
+        function exportPathData() {
+            if (window.connectionHighlighter) {
+                window.connectionHighlighter.exportPathData();
+            }
+        }
+        
+        // Initialize visualization when DOM is ready
+        let viz;
+        document.addEventListener("DOMContentLoaded", () => {
+            viz = new DataflowVisualization();
+        });
+    </script>
+</body>
+</html>

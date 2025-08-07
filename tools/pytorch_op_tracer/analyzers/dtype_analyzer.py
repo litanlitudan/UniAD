@@ -5,7 +5,7 @@ from collections import defaultdict
 
 try:
     from ..core.data_structures import TraceNode, TensorInfo, PYTORCH_DTYPES, UNIAD_DTYPE_CONFIGS
-except ImportError:
+except (ImportError, ValueError):
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

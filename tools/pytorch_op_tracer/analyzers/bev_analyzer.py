@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 try:
     from ..core.data_structures import TraceNode
-except ImportError:
+except (ImportError, ValueError):
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

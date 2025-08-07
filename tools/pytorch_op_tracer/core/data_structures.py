@@ -1,7 +1,7 @@
 """Data structures for PyTorch Operation Tracer"""
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 
 # Supported data types in PyTorch
 PYTORCH_DTYPES = {
@@ -47,6 +47,19 @@ UNIAD_DTYPE_CONFIGS = {
         'task_heads': 'float32',
     }
 }
+
+
+@dataclass
+class VisualizationMetadata:
+    """Metadata for interactive dataflow visualization"""
+    node_id: str  # Unique identifier for visualization
+    display_name: str  # Human-readable name
+    position: Tuple[float, float]  # X, Y coordinates
+    color: str  # Color based on operation type or memory usage
+    size: float  # Node size based on importance metric
+    expanded: bool = True  # Whether children are visible
+    highlight: bool = False  # Whether node is highlighted
+    tooltip_data: Dict[str, Any] = field(default_factory=dict)  # Data for hover tooltip
 
 
 @dataclass
@@ -143,6 +156,9 @@ class TraceNode:
     # Unique identifier
     node_id: str = ""
     
+    # Visualization metadata (optional)
+    visualization_metadata: Optional[VisualizationMetadata] = None
+    
     def __post_init__(self):
         if not self.node_id:
             self.node_id = f"{self.module_path}_{id(self)}"
@@ -165,7 +181,7 @@ class TraceNode:
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
-        return {
+        result = {
             'operation': self.operation,
             'module_path': self.module_path,
             'input_shapes': [s.to_dict() for s in self.input_shapes],
@@ -183,3 +199,18 @@ class TraceNode:
             'shape_transform': self.shape_transform,
             'node_id': self.node_id
         }
+        
+        # Add visualization metadata if present
+        if self.visualization_metadata:
+            result['visualization_metadata'] = {
+                'node_id': self.visualization_metadata.node_id,
+                'display_name': self.visualization_metadata.display_name,
+                'position': self.visualization_metadata.position,
+                'color': self.visualization_metadata.color,
+                'size': self.visualization_metadata.size,
+                'expanded': self.visualization_metadata.expanded,
+                'highlight': self.visualization_metadata.highlight,
+                'tooltip_data': self.visualization_metadata.tooltip_data
+            }
+        
+        return result

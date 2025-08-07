@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://d3js.org https://cdn.jsdelivr.net https://cdn.plot.ly; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self';">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniAD Interactive Dataflow Demo - UniAD Dataflow Visualization</title>
+<style>
+:root {
+--bg-color: #f0f4f8;
+--panel-bg: #ffffff;
+--card-bg: #ffffff;
+--text-primary: #1a202c;
+--text-secondary: #718096;
+--primary-color: #3182ce;
+--border-color: #e2e8f0;
+--canvas-bg: #ffffff;
+--edge-color: #a0aec0;
+--tooltip-bg: rgba(26, 32, 44, 0.9);
+--tooltip-text: white;
+--chip-bg: #edf2f7;
+--chip-text: #4a5568;
+--tab-bg: #f7fafc;
+}
+body { font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+.control-btn {
+background: var(--primary-color);
+color: white;
+border: none;
+padding: 8px 12px;
+border-radius: 6px;
+cursor: pointer;
+margin: 4px 0;
+width: 100%;
+font-weight: 500;
+}
+</style>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+/* Custom CSS placeholder - will be replaced by template engine */
+.dataflow-container {
+display: flex;
+height: 100vh;
+background-color: var(--bg-color);
+}
+.control-panel {
+width: 320px;
+background-color: var(--panel-bg);
+border-right: 1px solid var(--border-color);
+padding: 20px;
+overflow-y: auto;
+box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+}
+.visualization-area {
+flex: 1;
+position: relative;
+overflow: hidden;
+}
+#dataflow-svg {
+width: 100%;
+height: 100%;
+background-color: var(--canvas-bg);
+}
+.filter-group {
+margin-bottom: 25px;
+padding: 15px;
+background-color: var(--card-bg);
+border-radius: 8px;
+border: 1px solid var(--border-color);
+}
+.filter-title {
+font-weight: 600;
+margin-bottom: 10px;
+color: var(--text-primary);
+}
+.node {
+cursor: pointer;
+transition: all 0.3s ease;
+}
+.node:hover {
+stroke-width: 3px;
+filter: brightness(1.1);
+}
+.edge {
+fill: none;
+stroke: var(--edge-color);
+stroke-width: 2px;
+marker-end: url(#arrowhead);
+}
+#tooltip {
+position: absolute;
+background-color: var(--tooltip-bg);
+color: var(--tooltip-text);
+padding: 12px;
+border-radius: 6px;
+font-size: 12px;
+max-width: 300px;
+pointer-events: none;
+opacity: 0;
+transition: opacity 0.2s;
+z-index: 1000;
+box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.loading-overlay {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(255, 255, 255, 0.9);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+color: #666;
+z-index: 999;
+}
+.task-head-filter {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-top: 10px;
+}
+.task-chip {
+background-color: var(--chip-bg);
+color: var(--chip-text);
+padding: 4px 8px;
+border-radius: 12px;
+font-size: 11px;
+cursor: pointer;
+transition: all 0.2s;
+}
+.task-chip.active {
+background-color: var(--primary-color);
+color: white;
+}
+.control-btn {
+background-color: var(--primary-color);
+color: white;
+border: none;
+padding: 8px 12px;
+margin: 4px 0;
+border-radius: 4px;
+cursor: pointer;
+font-size: 12px;
+width: 100%;
+transition: all 0.2s;
+}
+.control-btn:hover {
+background-color: var(--primary-dark, #0056b3);
+transform: translateY(-1px);
+}
+</style>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+<script>
+// Utility functions for all templates
+function downloadData(data, filename, type = 'application/json') {
+const blob = new Blob([JSON.stringify(data, null, 2)], { type });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = filename;
+a.click();
+URL.revokeObjectURL(url);
+}
+function copyToClipboard(text) {
+navigator.clipboard.writeText(text).then(() => {
+console.log('Copied to clipboard');
+});
+}
+function formatNumber(num, decimals = 2) {
+return parseFloat(num).toFixed(decimals);
+}
+function formatBytes(bytes, decimals = 1) {
+if (bytes === 0) return '0 B';
+const k = 1024;
+const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+const i = Math.floor(Math.log(bytes) / Math.log(k));
+return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
+}
+</script>
+</head>
+<body>
+<div class="dataflow-container">
+<div class="control-panel">
+<div class="filter-group">
+<div class="filter-title">Task Head Filters</div>
+<div id="task-head-filters" class="task-head-filter"></div>
+</div>
+<div class="filter-group">
+<div class="filter-title">Memory Threshold</div>
+<input type="range" id="memory-threshold" min="0" max="10000" value="0" style="width: 100%;">
+<span id="memory-threshold-value">0 MB</span>
+</div>
+<div class="filter-group">
+<div class="filter-title">Search</div>
+<input type="text" id="search-input" placeholder="Search operations..." style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+</div>
+<div class="filter-group">
+<div class="filter-title">View Controls</div>
+<button class="control-btn" onclick="expandAllNodes()">Expand All</button>
+<button class="control-btn" onclick="collapseAllNodes()">Collapse All</button>
+<button class="control-btn" onclick="resetZoom()">Reset Zoom</button>
+<button class="control-btn" onclick="exportVisualization()">Export PNG</button>
+</div>
+<div class="filter-group">
+<div class="filter-title">Connection Highlighting</div>
+<button class="control-btn" onclick="clearHighlights()">Clear Highlights</button>
+<button class="control-btn" onclick="animatePaths()">Animate Paths</button>
+<button class="control-btn" onclick="exportPathData()">Export Paths</button>
+<div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary);">
+<div>• Click edges to highlight data paths</div>
+<div>• Ctrl+Click nodes for path exploration</div>
+<div>• Right-click for context menu</div>
+<div>• ESC to clear all highlights</div>
+</div>
+</div>
+<div class="filter-group">
+<div class="filter-title">Statistics</div>
+<div id="summary-stats"></div>
+</div>
+</div>
+<div class="visualization-area">
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+Loading visualization...
+</div>
+<svg id="dataflow-svg"></svg>
+<div id="tooltip"></div>
+</div>
+</div>
+<!-- Interactive Connection Highlighting -->
+<script src="static/js/interactive.js"></script>
+<script>
+// Embed configuration and data
+// Configuration and data will be injected by template engine
+const CONFIG = /* {
+"max_nodes_visible": 10,
+"color_scheme": "operation",
+"show_shapes": true
+} */ {};
+const DATA = /* {
+"nodes": [
+{
+"id": "node_0",
+"display_name": "ImageBackbone",
+"type": "operation",
+"task_head": "bev",
+"operation": "ImageBackbone",
+"memory_mb": 2048.5,
+"compute_ms": 25.4,
+"module_path": "backbone.resnet101",
+"position": [
+0,
+100
+],
+"color": "#ff9ff3",
+"size": 50,
+"tooltip_data": {
+"operation": "ImageBackbone",
+"module_path": "backbone.resnet101",
+"memory_mb": 2048.5,
+"compute_ms": 25.4,
+"task_head": "bev",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_1",
+"display_name": "BEVEncoder",
+"type": "operation",
+"task_head": "bev",
+"operation": "BEVEncoder",
+"memory_mb": 1536.2,
+"compute_ms": 18.7,
+"module_path": "bev_encoder.transformer",
+"position": [
+100,
+100
+],
+"color": "#ff9ff3",
+"size": 50,
+"tooltip_data": {
+"operation": "BEVEncoder",
+"module_path": "bev_encoder.transformer",
+"memory_mb": 1536.2,
+"compute_ms": 18.7,
+"task_head": "bev",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_2",
+"display_name": "TrackHead_forward",
+"type": "operation",
+"task_head": "track",
+"operation": "TrackHead_forward",
+"memory_mb": 1024.8,
+"compute_ms": 12.3,
+"module_path": "task_heads.track_head",
+"position": [
+200,
+100
+],
+"color": "#ff6b6b",
+"size": 50,
+"tooltip_data": {
+"operation": "TrackHead_forward",
+"module_path": "task_heads.track_head",
+"memory_mb": 1024.8,
+"compute_ms": 12.3,
+"task_head": "track",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_3",
+"display_name": "TrackDecoder",
+"type": "operation",
+"task_head": "track",
+"operation": "TrackDecoder",
+"memory_mb": 768.4,
+"compute_ms": 9.1,
+"module_path": "task_heads.track_head.decoder",
+"position": [
+300,
+100
+],
+"color": "#ff6b6b",
+"size": 50,
+"tooltip_data": {
+"operation": "TrackDecoder",
+"module_path": "task_heads.track_head.decoder",
+"memory_mb": 768.4,
+"compute_ms": 9.1,
+"task_head": "track",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_4",
+"display_name": "SegmentationHead",
+"type": "operation",
+"task_head": "seg",
+"operation": "SegmentationHead",
+"memory_mb": 896.7,
+"compute_ms": 14.2,
+"module_path": "task_heads.panseg_head",
+"position": [
+400,
+100
+],
+"color": "#4ecdc4",
+"size": 50,
+"tooltip_data": {
+"operation": "SegmentationHead",
+"module_path": "task_heads.panseg_head",
+"memory_mb": 896.7,
+"compute_ms": 14.2,
+"task_head": "seg",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_5",
+"display_name": "MotionPredictor",
+"type": "operation",
+"task_head": "motion",
+"operation": "MotionPredictor",
+"memory_mb": 512.3,
+"compute_ms": 8.9,
+"module_path": "task_heads.motion_head",
+"position": [
+500,
+100
+],
+"color": "#45b7d1",
+"size": 50,
+"tooltip_data": {
+"operation": "MotionPredictor",
+"module_path": "task_heads.motion_head",
+"memory_mb": 512.3,
+"compute_ms": 8.9,
+"task_head": "motion",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_6",
+"display_name": "MotionDecoder",
+"type": "operation",
+"task_head": "motion",
+"operation": "MotionDecoder",
+"memory_mb": 384.1,
+"compute_ms": 6.7,
+"module_path": "task_heads.motion_head.decoder",
+"position": [
+600,
+100
+],
+"color": "#45b7d1",
+"size": 50,
+"tooltip_data": {
+"operation": "MotionDecoder",
+"module_path": "task_heads.motion_head.decoder",
+"memory_mb": 384.1,
+"compute_ms": 6.7,
+"task_head": "motion",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_7",
+"display_name": "OccupancyHead",
+"type": "operation",
+"task_head": "occ",
+"operation": "OccupancyHead",
+"memory_mb": 643.2,
+"compute_ms": 11.4,
+"module_path": "task_heads.occ_head",
+"position": [
+700,
+100
+],
+"color": "#96ceb4",
+"size": 50,
+"tooltip_data": {
+"operation": "OccupancyHead",
+"module_path": "task_heads.occ_head",
+"memory_mb": 643.2,
+"compute_ms": 11.4,
+"task_head": "occ",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_8",
+"display_name": "PlanningHead",
+"type": "operation",
+"task_head": "planning",
+"operation": "PlanningHead",
+"memory_mb": 256.8,
+"compute_ms": 5.2,
+"module_path": "task_heads.planning_head",
+"position": [
+800,
+100
+],
+"color": "#feca57",
+"size": 40.68,
+"tooltip_data": {
+"operation": "PlanningHead",
+"module_path": "task_heads.planning_head",
+"memory_mb": 256.8,
+"compute_ms": 5.2,
+"task_head": "planning",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+},
+{
+"id": "node_9",
+"display_name": "TrajectoryDecoder",
+"type": "operation",
+"task_head": "planning",
+"operation": "TrajectoryDecoder",
+"memory_mb": 192.4,
+"compute_ms": 3.8,
+"module_path": "task_heads.planning_head.decoder",
+"position": [
+900,
+100
+],
+"color": "#feca57",
+"size": 34.24,
+"tooltip_data": {
+"operation": "TrajectoryDecoder",
+"module_path": "task_heads.planning_head.decoder",
+"memory_mb": 192.4,
+"compute_ms": 3.8,
+"task_head": "planning",
+"is_frozen": false,
+"input_shapes": [],
+"output_shapes": []
+}
+}
+],
+"edges": [
+{
+"id": "edge_0",
+"source": "node_0",
+"target": "node_2",
+"type": "task_dependency",
+"weight": 2.0
+},
+{
+"id": "edge_1",
+"source": "node_0",
+"target": "node_4",
+"type": "task_dependency",
+"weight": 2.0
+},
+{
+"id": "edge_2",
+"source": "node_2",
+"target": "node_5",
+"type": "task_dependency",
+"weight": 2.0
+},
+{
+"id": "edge_3",
+"source": "node_2",
+"target": "node_7",
+"type": "task_dependency",
+"weight": 2.0
+},
+{
+"id": "edge_4",
+"source": "node_5",
+"target": "node_8",
+"type": "task_dependency",
+"weight": 2.0
+},
+{
+"id": "edge_5",
+"source": "node_7",
+"target": "node_8",
+"type": "task_dependency",
+"weight": 2.0
+},
+{
+"id": "edge_6",
+"source": "node_0",
+"target": "node_1",
+"type": "sequential",
+"weight": 1.0
+},
+{
+"id": "edge_7",
+"source": "node_2",
+"target": "node_3",
+"type": "sequential",
+"weight": 1.0
+},
+{
+"id": "edge_8",
+"source": "node_5",
+"target": "node_6",
+"type": "sequential",
+"weight": 1.0
+},
+{
+"id": "edge_9",
+"source": "node_8",
+"target": "node_9",
+"type": "sequential",
+"weight": 1.0
+}
+],
+"summary": {
+"total_nodes": 10,
+"total_edges": 10,
+"total_memory_mb": 8263.4,
+"task_head_count": 6
+}
+} */ {};
+const METADATA = /* {
+"generator": "HTMLTemplateEngine",
+"version": "1.0.0",
+"visualization_type": "dataflow"
+} */ {};
+/* Custom JavaScript placeholder - will be replaced by template engine */
+// Initialize dataflow visualization
+class DataflowVisualization {
+constructor() {
+this.svg = d3.select("#dataflow-svg");
+this.width = window.innerWidth - 320;
+this.height = window.innerHeight;
+this.simulation = null;
+this.nodes = DATA.nodes || [];
+this.edges = DATA.edges || [];
+this.filteredNodes = [...this.nodes];
+this.filteredEdges = [...this.edges];
+this.init();
+}
+init() {
+this.setupSVG();
+this.setupFilters();
+this.setupSummary();
+this.renderVisualization();
+this.setupEventListeners();
+this.initializeConnectionHighlighter();
+}
+setupSVG() {
+// Create main group with zoom behavior
+this.zoom = d3.zoom()
+.scaleExtent([0.1, 3])
+.on("zoom", (event) => {
+this.mainGroup.attr("transform", event.transform);
+});
+this.svg.call(this.zoom);
+this.mainGroup = this.svg.append("g");
+// Define arrowhead marker
+this.svg.append("defs").append("marker")
+.attr("id", "arrowhead")
+.attr("viewBox", "0 -5 10 10")
+.attr("refX", 8)
+.attr("refY", 0)
+.attr("markerWidth", 6)
+.attr("markerHeight", 6)
+.attr("orient", "auto")
+.append("path")
+.attr("d", "M0,-5L10,0L0,5")
+.attr("fill", "var(--edge-color)");
+}
+setupFilters() {
+// Task head filters
+const taskHeads = [...new Set(this.nodes.map(n => n.task_head).filter(Boolean))];
+const taskContainer = d3.select("#task-head-filters");
+taskHeads.forEach(taskHead => {
+taskContainer.append("div")
+.attr("class", "task-chip active")
+.attr("data-task", taskHead)
+.text(taskHead)
+.on("click", (event) => {
+const chip = d3.select(event.target);
+chip.classed("active", !chip.classed("active"));
+this.applyFilters();
+});
+});
+// Memory threshold
+d3.select("#memory-threshold").on("input", (event) => {
+const value = event.target.value;
+d3.select("#memory-threshold-value").text(value + " MB");
+this.applyFilters();
+});
+// Search input
+d3.select("#search-input").on("input", () => {
+this.applyFilters();
+});
+}
+applyFilters() {
+const selectedTasks = [];
+d3.selectAll(".task-chip.active").each(function() {
+selectedTasks.push(this.getAttribute("data-task"));
+});
+const memoryThreshold = +d3.select("#memory-threshold").node().value;
+const searchQuery = d3.select("#search-input").node().value.toLowerCase();
+this.filteredNodes = this.nodes.filter(node => {
+// Task filter
+if (selectedTasks.length > 0 && node.task_head && !selectedTasks.includes(node.task_head)) {
+return false;
+}
+// Memory filter
+if (node.memory_mb < memoryThreshold) {
+return false;
+}
+// Search filter
+if (searchQuery && !node.display_name.toLowerCase().includes(searchQuery)) {
+return false;
+}
+return true;
+});
+// Filter edges
+const nodeIds = new Set(this.filteredNodes.map(n => n.id));
+this.filteredEdges = this.edges.filter(edge =>
+nodeIds.has(edge.source) && nodeIds.has(edge.target)
+);
+this.renderVisualization();
+}
+renderVisualization() {
+this.showLoading(true);
+// Clear existing elements
+this.mainGroup.selectAll("*").remove();
+if (this.filteredNodes.length === 0) {
+this.showMessage("No nodes match current filters");
+this.showLoading(false);
+return;
+}
+// Create force simulation
+this.simulation = d3.forceSimulation(this.filteredNodes)
+.force("link", d3.forceLink(this.filteredEdges)
+.id(d => d.id)
+.distance(100))
+.force("charge", d3.forceManyBody().strength(-500))
+.force("center", d3.forceCenter(this.width / 2, this.height / 2))
+.force("collision", d3.forceCollide().radius(d => d.size + 10));
+// Render edges
+this.renderEdges();
+// Render nodes
+this.renderNodes();
+// Start simulation
+this.simulation.on("tick", () => this.updatePositions());
+// Reinitialize connection highlighter with new elements
+setTimeout(() => {
+this.showLoading(false);
+this.initializeConnectionHighlighter();
+}, 500);
+}
+renderEdges() {
+this.edgeElements = this.mainGroup.append("g")
+.attr("class", "edges")
+.selectAll(".edge")
+.data(this.filteredEdges)
+.enter().append("line")
+.attr("class", "edge");
+}
+renderNodes() {
+this.nodeElements = this.mainGroup.append("g")
+.attr("class", "nodes")
+.selectAll(".node-group")
+.data(this.filteredNodes)
+.enter().append("g")
+.attr("class", "node-group")
+.call(this.createDragBehavior());
+// Add circles
+this.nodeElements.append("circle")
+.attr("class", "node")
+.attr("r", d => d.size || 20)
+.attr("fill", d => d.color || "#69b3a2")
+.attr("stroke", "#fff")
+.attr("stroke-width", 2)
+.on("mouseover", (event, d) => this.showTooltip(event, d))
+.on("mouseout", () => this.hideTooltip());
+// Add labels
+this.nodeElements.append("text")
+.attr("class", "node-label")
+.attr("text-anchor", "middle")
+.attr("dy", "0.3em")
+.text(d => this.truncateText(d.display_name, 15))
+.style("font-size", "11px")
+.style("fill", "var(--text-primary)")
+.style("pointer-events", "none");
+}
+updatePositions() {
+this.edgeElements
+.attr("x1", d => d.source.x)
+.attr("y1", d => d.source.y)
+.attr("x2", d => d.target.x)
+.attr("y2", d => d.target.y);
+this.nodeElements
+.attr("transform", d => `translate(${d.x},${d.y})`);
+}
+createDragBehavior() {
+return d3.drag()
+.on("start", (event, d) => {
+if (!event.active) this.simulation.alphaTarget(0.3).restart();
+d.fx = d.x;
+d.fy = d.y;
+})
+.on("drag", (event, d) => {
+d.fx = event.x;
+d.fy = event.y;
+})
+.on("end", (event, d) => {
+if (!event.active) this.simulation.alphaTarget(0);
+d.fx = null;
+d.fy = null;
+});
+}
+showTooltip(event, d) {
+const tooltip = d3.select("#tooltip");
+let content = `<strong>${d.display_name}</strong><br>`;
+if (d.memory_mb) {
+content += `Memory: ${d.memory_mb.toFixed(1)} MB<br>`;
+}
+if (d.compute_ms) {
+content += `Compute: ${d.compute_ms.toFixed(1)} ms<br>`;
+}
+if (d.task_head) {
+content += `Task Head: ${d.task_head}<br>`;
+}
+tooltip.html(content)
+.style("left", (event.pageX + 10) + "px")
+.style("top", (event.pageY - 10) + "px")
+.style("opacity", 1);
+}
+hideTooltip() {
+d3.select("#tooltip").style("opacity", 0);
+}
+showLoading(show) {
+d3.select("#loading-overlay").style("display", show ? "flex" : "none");
+}
+showMessage(message) {
+this.mainGroup.append("text")
+.attr("x", this.width / 2)
+.attr("y", this.height / 2)
+.attr("text-anchor", "middle")
+.style("font-size", "18px")
+.style("fill", "var(--text-secondary)")
+.text(message);
+}
+truncateText(text, maxLength) {
+return text.length > maxLength ? text.substring(0, maxLength - 3) + "..." : text;
+}
+setupSummary() {
+const summary = DATA.summary || {};
+const container = d3.select("#summary-stats");
+const stats = [
+{ label: "Total Nodes", value: this.nodes.length },
+{ label: "Total Memory", value: (summary.total_memory_mb || 0).toFixed(1) + " MB" },
+{ label: "Task Heads", value: summary.task_head_count || 0 }
+];
+stats.forEach(stat => {
+const div = container.append("div")
+.style("margin-bottom", "8px")
+.style("font-size", "12px");
+div.append("div")
+.style("font-weight", "500")
+.style("color", "var(--text-secondary)")
+.text(stat.label);
+div.append("div")
+.style("font-weight", "600")
+.style("color", "var(--text-primary)")
+.text(stat.value);
+});
+}
+setupEventListeners() {
+window.addEventListener("resize", () => {
+this.width = window.innerWidth - 320;
+this.height = window.innerHeight;
+this.svg.attr("width", this.width).attr("height", this.height);
+if (this.simulation) {
+this.simulation.force("center", d3.forceCenter(this.width / 2, this.height / 2));
+this.simulation.restart();
+}
+});
+}
+initializeConnectionHighlighter() {
+// Wait for elements to be rendered before initializing highlighter
+if (this.nodeElements && this.edgeElements) {
+const config = {
+animationSpeed: 750,
+enablePathTraversal: true,
+enableMultipleHighlights: true
+};
+this.connectionHighlighter = initializeConnectionHighlighter(
+this.svg,
+this.nodeElements,
+this.edgeElements,
+{
+nodes: this.filteredNodes,
+edges: this.filteredEdges
+},
+config
+);
+console.log('Connection highlighter initialized for dataflow visualization');
+} else {
+// Retry after a short delay if elements aren't ready
+setTimeout(() => this.initializeConnectionHighlighter(), 100);
+}
+}
+}
+// Global functions for control buttons
+function expandAllNodes() {
+console.log("Expand all nodes");
+}
+function collapseAllNodes() {
+console.log("Collapse all nodes");
+}
+function resetZoom() {
+viz.svg.transition().duration(750)
+.call(viz.zoom.transform, d3.zoomIdentity);
+}
+function exportVisualization() {
+console.log("Export visualization");
+}
+function clearHighlights() {
+if (window.connectionHighlighter) {
+window.connectionHighlighter.clearAllHighlights();
+}
+}
+function animatePaths() {
+if (window.connectionHighlighter) {
+window.connectionHighlighter.animateActivePaths();
+}
+}
+function exportPathData() {
+if (window.connectionHighlighter) {
+window.connectionHighlighter.exportPathData();
+}
+}
+// Initialize visualization when DOM is ready
+let viz;
+document.addEventListener("DOMContentLoaded", () => {
+viz = new DataflowVisualization();
+});
+</script>
+</body>
+</html>

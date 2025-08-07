@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}} - Memory Timeline</title>
+    {{CSS_THEME}}
+    <style>
+        /* Custom CSS placeholder - will be replaced by template engine */
+        .memory-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: var(--bg-color);
+        }
+        .header {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="memory-container">
+        <div class="header">
+            <h1>{{TITLE}}</h1>
+            <p>Memory usage timeline analysis</p>
+            <small>Generated: {{TIMESTAMP}}</small>
+        </div>
+        
+        <div class="stats-grid" id="stats-grid"></div>
+        
+        <div class="chart-container">
+            <canvas id="memoryChart" width="400" height="150"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Configuration and data will be injected by template engine
+        const CONFIG = /* {{CONFIG_JSON}} */ {};
+        const DATA = /* {{DATA_JSON}} */ {};
+        
+        // Custom JavaScript placeholder - will be replaced by template engine
+        /* {{CUSTOM_JS}} */
+        
+        // Initialize memory visualization
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeMemoryVisualization();
+        });
+        
+        function initializeMemoryVisualization() {
+            setupStats();
+            setupChart();
+        }
+        
+        function setupStats() {
+            const statsGrid = document.getElementById("stats-grid");
+            const timeline = DATA.timeline_points || [];
+            
+            if (timeline.length > 0) {
+                const maxMemory = Math.max(...timeline.map(p => p[1]));
+                const avgMemory = timeline.reduce((sum, p) => sum + p[1], 0) / timeline.length;
+                
+                const stats = [
+                    { label: "Peak Memory", value: maxMemory.toFixed(1) + " MB" },
+                    { label: "Average Memory", value: avgMemory.toFixed(1) + " MB" },
+                    { label: "Memory Pressure", value: (DATA.memory_pressure * 100).toFixed(1) + "%" },
+                    { label: "Data Points", value: timeline.length.toLocaleString() }
+                ];
+                
+                stats.forEach(stat => {
+                    const card = document.createElement("div");
+                    card.className = "stat-card";
+                    card.innerHTML = `
+                        <div class="stat-value">${stat.value}</div>
+                        <div class="stat-label">${stat.label}</div>
+                    `;
+                    statsGrid.appendChild(card);
+                });
+            }
+        }
+        
+        function setupChart() {
+            const ctx = document.getElementById("memoryChart").getContext("2d");
+            const timeline = DATA.timeline_points || [];
+            
+            if (timeline.length === 0) {
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#666";
+                ctx.textAlign = "center";
+                ctx.fillText("No memory data available", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeline.map(p => `${p[0].toFixed(1)}ms`),
+                    datasets: [{
+                        label: 'Memory Usage (MB)',
+                        data: timeline.map(p => p[1]),
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Memory Usage Over Time'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (ms)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Memory Usage (MB)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

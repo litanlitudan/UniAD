@@ -1,11 +1,11 @@
 """Multi-head interaction analyzer for UniAD"""
 
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     from ..core.data_structures import TraceNode
-except ImportError:
+except (ImportError, ValueError):
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,7 +15,7 @@ except ImportError:
 class MultiHeadTracer:
     """Traces interactions between UniAD's five task heads"""
     
-    def __init__(self, task_heads: List[str] = None):
+    def __init__(self, task_heads: Optional[List[str]] = None):
         self.task_heads = task_heads or ['track', 'seg', 'motion', 'occ', 'planning']
         self.head_dependencies = {
             'motion': ['track'],

@@ -1,14 +1,14 @@
 """Mermaid diagram visualizer for dataflow"""
 
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 import torch.nn as nn
 
 try:
     from ..core.data_structures import TraceNode
     from ..core.hierarchy_analyzer import ModuleHierarchyAnalyzer
     from ..core.visualization_state import VisualizationState
-except ImportError:
+except (ImportError, ValueError):
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,7 +21,7 @@ class DataflowVisualizer:
     """Generates Mermaid diagrams from trace data with hierarchical visualization"""
     
     def __init__(self, max_nodes: int = 50, visualization_mode: str = 'top-level',
-                 expand_modules: List[str] = None, expand_heavy_modules: bool = False,
+                 expand_modules: Optional[List[str]] = None, expand_heavy_modules: bool = False,
                  show_shapes: bool = True, shape_format: str = 'full',
                  track_shape_changes: bool = False, model: Optional[nn.Module] = None,
                  memory_threshold: Optional[float] = None):
@@ -259,7 +259,6 @@ class DataflowVisualizer:
                 # Create aggregated node
                 safe_name = module_name.replace('.', '_')
                 total_memory = sum(n.memory_usage for n in module_nodes)
-                total_compute = sum(n.compute_time for n in module_nodes)
                 
                 label = f"{module_name}<br/>Ops: {len(module_nodes)}<br/>Memory: {total_memory:.1f}MB"
                 if self.state.show_shapes and module_nodes:

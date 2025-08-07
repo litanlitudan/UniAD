@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Highlighting Test - UniAD Dataflow</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        .control-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .control-btn:hover {
+            background: #0056b3;
+        }
+        
+        #test-svg {
+            width: 100%;
+            height: 600px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .edge {
+            fill: none;
+            stroke: #999;
+            stroke-width: 2px;
+            marker-end: url(#arrowhead);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>UniAD Connection Highlighting Test</h1>
+        <p>This is a test page demonstrating the interactive connection highlighting functionality for UniAD dataflow visualization.</p>
+        
+        <div class="controls">
+            <button class="control-btn" onclick="clearHighlights()">Clear Highlights</button>
+            <button class="control-btn" onclick="animatePaths()">Animate Paths</button>
+            <button class="control-btn" onclick="exportData()">Export Data</button>
+            <button class="control-btn" onclick="generateRandomPath()">Highlight Random Path</button>
+        </div>
+        
+        <svg id="test-svg"></svg>
+        
+        <div class="info-panel">
+            <h3>Instructions</h3>
+            <ul>
+                <li><strong>Click edges:</strong> Highlight data paths and show transformation details</li>
+                <li><strong>Ctrl+Click nodes:</strong> Explore paths from/to that node</li>
+                <li><strong>Right-click nodes:</strong> Open context menu for advanced options</li>
+                <li><strong>ESC key:</strong> Clear all highlights</li>
+                <li><strong>Ctrl+H:</strong> Toggle highlight mode</li>
+                <li><strong>Ctrl+A:</strong> Animate all highlighted paths</li>
+            </ul>
+            <div id="status-info" style="margin-top: 15px; font-size: 14px; color: #666;">
+                Ready - Click on edges or nodes to interact
+            </div>
+        </div>
+    </div>
+
+    <script src="interactive.js"></script>
+    
+    <script>
+        // Create test data with UniAD-like structure
+        const testData = {
+            nodes: [
+                { id: 'backbone', display_name: 'ResNet-101', task_head: 'bev', memory_mb: 1500, size: 30, color: '#ffccff', x: 150, y: 100 },
+                { id: 'bev_encoder', display_name: 'BEVFormer', task_head: 'bev', memory_mb: 2000, size: 35, color: '#ffccff', x: 300, y: 100 },
+                { id: 'track_head', display_name: 'Track Head', task_head: 'track', memory_mb: 800, size: 25, color: '#ff9999', x: 200, y: 250 },
+                { id: 'seg_head', display_name: 'Seg Head', task_head: 'seg', memory_mb: 600, size: 25, color: '#99ccff', x: 400, y: 250 },
+                { id: 'motion_head', display_name: 'Motion Head', task_head: 'motion', memory_mb: 1000, size: 28, color: '#9999ff', x: 150, y: 400 },
+                { id: 'occ_head', display_name: 'Occ Head', task_head: 'occ', memory_mb: 700, size: 26, color: '#ffcc99', x: 350, y: 400 },
+                { id: 'planning_head', display_name: 'Planning Head', task_head: 'planning', memory_mb: 500, size: 24, color: '#99ff99', x: 250, y: 550 }
+            ],
+            edges: [
+                { source: 'backbone', target: 'bev_encoder', weight: 1.0 },
+                { source: 'bev_encoder', target: 'track_head', weight: 1.0 },
+                { source: 'bev_encoder', target: 'seg_head', weight: 1.0 },
+                { source: 'track_head', target: 'motion_head', weight: 0.8 },
+                { source: 'track_head', target: 'occ_head', weight: 0.8 },
+                { source: 'motion_head', target: 'planning_head', weight: 0.9 },
+                { source: 'occ_head', target: 'planning_head', weight: 0.9 }
+            ]
+        };
+        
+        // Initialize the test visualization
+        class TestDataflowVisualization {
+            constructor() {
+                this.svg = d3.select("#test-svg");
+                this.width = 800;
+                this.height = 600;
+                this.data = testData;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupSVG();
+                this.renderVisualization();
+                this.initializeConnectionHighlighter();
+            }
+            
+            setupSVG() {
+                this.mainGroup = this.svg.append("g");
+                
+                // Define arrowhead marker
+                this.svg.append("defs").append("marker")
+                    .attr("id", "arrowhead")
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 8)
+                    .attr("refY", 0)
+                    .attr("markerWidth", 6)
+                    .attr("markerHeight", 6)
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M0,-5L10,0L0,5")
+                    .attr("fill", "#999");
+            }
+            
+            renderVisualization() {
+                // Render edges
+                this.edgeElements = this.mainGroup.append("g")
+                    .attr("class", "edges")
+                    .selectAll(".edge")
+                    .data(this.data.edges)
+                    .enter().append("line")
+                    .attr("class", "edge")
+                    .attr("x1", d => this.getNode(d.source).x)
+                    .attr("y1", d => this.getNode(d.source).y)
+                    .attr("x2", d => this.getNode(d.target).x)
+                    .attr("y2", d => this.getNode(d.target).y);
+                
+                // Render nodes
+                this.nodeElements = this.mainGroup.append("g")
+                    .attr("class", "nodes")
+                    .selectAll(".node-group")
+                    .data(this.data.nodes)
+                    .enter().append("g")
+                    .attr("class", "node-group")
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+                
+                // Add circles
+                this.nodeElements.append("circle")
+                    .attr("class", "node")
+                    .attr("r", d => d.size)
+                    .attr("fill", d => d.color)
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 2);
+                
+                // Add labels
+                this.nodeElements.append("text")
+                    .attr("class", "node-label")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", "0.3em")
+                    .text(d => d.display_name)
+                    .style("font-size", "11px")
+                    .style("fill", "#333")
+                    .style("pointer-events", "none");
+                
+                // Add memory info below nodes
+                this.nodeElements.append("text")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", "1.8em")
+                    .text(d => `${d.memory_mb} MB`)
+                    .style("font-size", "9px")
+                    .style("fill", "#666")
+                    .style("pointer-events", "none");
+            }
+            
+            getNode(nodeId) {
+                return this.data.nodes.find(n => n.id === nodeId);
+            }
+            
+            initializeConnectionHighlighter() {
+                const config = {
+                    animationSpeed: 1000,
+                    enablePathTraversal: true,
+                    enableMultipleHighlights: true
+                };
+                
+                this.connectionHighlighter = initializeConnectionHighlighter(
+                    this.svg,
+                    this.nodeElements,
+                    this.edgeElements,
+                    this.data,
+                    config
+                );
+                
+                console.log('Test connection highlighter initialized');
+                this.updateStatus('Connection highlighter initialized - ready for interaction');
+            }
+            
+            updateStatus(message) {
+                document.getElementById('status-info').textContent = message;
+            }
+        }
+        
+        // Global functions for test controls
+        function clearHighlights() {
+            if (window.connectionHighlighter) {
+                window.connectionHighlighter.clearAllHighlights();
+                viz.updateStatus('All highlights cleared');
+            }
+        }
+        
+        function animatePaths() {
+            if (window.connectionHighlighter) {
+                window.connectionHighlighter.animateActivePaths();
+                viz.updateStatus('Animating active paths');
+            }
+        }
+        
+        function exportData() {
+            if (window.connectionHighlighter) {
+                window.connectionHighlighter.exportPathData();
+                viz.updateStatus('Path data exported');
+            }
+        }
+        
+        function generateRandomPath() {
+            if (window.connectionHighlighter) {
+                // Select a random edge to highlight
+                const randomEdge = testData.edges[Math.floor(Math.random() * testData.edges.length)];
+                
+                // Simulate edge click
+                const edgeElement = viz.edgeElements.filter(d => 
+                    d.source === randomEdge.source && d.target === randomEdge.target
+                ).node();
+                
+                if (edgeElement) {
+                    const event = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    edgeElement.dispatchEvent(event);
+                    viz.updateStatus(`Highlighting path: ${randomEdge.source} → ${randomEdge.target}`);
+                }
+            }
+        }
+        
+        // Initialize test visualization when DOM is ready
+        let viz;
+        document.addEventListener("DOMContentLoaded", () => {
+            viz = new TestDataflowVisualization();
+        });
+    </script>
+</body>
+</html>

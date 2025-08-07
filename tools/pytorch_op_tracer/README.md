@@ -1,295 +1,113 @@
 # PyTorch Operation Tracer
 
-A comprehensive tool for tracing PyTorch operations, recording tensor shapes, and visualizing dataflow with specific support for UniAD's multi-task autonomous driving framework.
+A comprehensive tool for tracing PyTorch operations with specialized support for UniAD's multi-task autonomous driving framework.
 
-## Features
+## 📋 Quick Links
 
-- **Operation Tracing**: Hooks into PyTorch modules to trace all operations
-- **UniAD-Specific Support**: Specialized tracking for UniAD's 5 task heads (track, seg, motion, occ, planning)
-- **Memory Profiling**: Critical for understanding UniAD's 30-50GB GPU memory usage
-- **Data Type Tracking**: Comprehensive dtype analysis (fp32, fp16, bf16, int8) with memory impact
-- **Temporal Analysis**: Visualize multi-frame temporal queue processing
-- **BEV Feature Tracking**: Specialized analysis for BEV encoder/decoder operations
-- **Mermaid Visualization**: Generate clear dataflow diagrams with dtype annotations
-- **Stage-Aware**: Different handling for Stage 1 (perception) vs Stage 2 (end-to-end)
-- **Mixed Precision Analysis**: Support for analyzing mixed precision configurations
+- **[📖 Complete Documentation](INDEX.md)** - Full documentation with examples and guides
+- **[🚀 Quick Start](#quick-start)** - Get started immediately
+- **[⚙️ Installation](#installation)** - Installation options
+- **[🐍 Python API](#python-api)** - Programmatic usage
 
-## Installation
+## ✨ Key Features
 
-### Option 1: Install as Package
+- **🔍 Operation Tracing**: Hooks into PyTorch modules to trace all forward operations
+- **🚗 UniAD-Specific Support**: Specialized tracking for all 5 task heads (track, seg, motion, occ, planning)  
+- **💾 Memory Profiling**: Critical for UniAD's 30-50GB GPU memory requirements
+- **🎯 Data Type Analysis**: Comprehensive dtype tracking (fp32, fp16, bf16, int8) with memory impact
+- **⏱️ Temporal Analysis**: Visualize multi-frame temporal queue processing (3-5 frames)
+- **🗺️ BEV Feature Tracking**: Specialized analysis for BEV encoder/decoder operations
+- **📊 Mermaid Visualization**: Generate clear dataflow diagrams with shape and dtype annotations
+- **🔄 Stage-Aware**: Different handling for Stage 1 (perception) vs Stage 2 (end-to-end)
+- **⚡ Mixed Precision**: Analyze and optimize mixed precision configurations
+
+## ⚙️ Installation
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/OpenDriveLab/UniAD.git
 cd UniAD/tools/pytorch_op_tracer
-
-# Install the package
-pip install -e .
-
-# With visualization support
-pip install -e ".[visualization]"
-
-# With full UniAD support
-pip install -e ".[uniad]"
+pip install -e ".[uniad]"  # Full installation with UniAD support
 ```
 
-### Option 2: Use Directly
+## 🚀 Quick Start
 
 ```bash
-# Add to Python path
-export PYTHONPATH=$PYTHONPATH:/path/to/UniAD/tools/pytorch_op_tracer
-
-# Run directly
-python /path/to/UniAD/tools/pytorch_op_tracer/trace_ops.py --help
-```
-
-## Quick Start
-
-### Basic Usage
-
-```bash
-# Trace a UniAD model
+# Trace UniAD Stage 2 model
 pytorch-trace --config projects/configs/stage2_e2e/base_e2e.py \
               --checkpoint ckpts/uniad_base_e2e.pth \
-              --output trace_output.md
+              --output analysis.md
 
-# Test mode without UniAD dependencies
-pytorch-trace --test-mode --output test_trace.md
+# Test without UniAD dependencies
+pytorch-trace --test-mode --output test.md
 ```
 
-### Python API
+## 🐍 Python API
 
 ```python
 from pytorch_op_tracer import OperationTracer, TraceAnalyzer, DataflowVisualizer
 
-# Create tracer
-tracer = OperationTracer(model, stage=2, task_heads=['track', 'motion', 'planning'])
-
-# Trace model
+# Trace operations
+tracer = OperationTracer(model, stage=2)
 trace_nodes = tracer.trace(inputs)
 
-# Analyze
+# Analyze results
 analyzer = TraceAnalyzer()
 analysis = analyzer.analyze(trace_nodes)
 
-# Visualize
+# Generate visualization
 visualizer = DataflowVisualizer()
-mermaid = visualizer.generate_mermaid(trace_nodes, analysis['head_analysis'], 
-                                     analysis['memory_profile'])
+diagram = visualizer.generate_mermaid(trace_nodes, analysis)
 ```
 
-## Package Structure
+## 📖 Documentation
 
-```
-pytorch_op_tracer/
-├── __init__.py              # Package root
-├── core/                    # Core tracing functionality
-│   ├── __init__.py
-│   ├── data_structures.py   # TraceNode data structure with dtype support
-│   ├── shape_recorder.py    # Tensor shape and dtype recording
-│   ├── visualization_state.py # Visualization configuration
-│   └── tracer.py           # Main OperationTracer
-├── analyzers/              # Analysis modules
-│   ├── __init__.py
-│   ├── trace_analyzer.py   # Comprehensive analyzer
-│   ├── multi_head_analyzer.py  # UniAD task head analysis
-│   ├── temporal_analyzer.py    # Temporal queue analysis
-│   ├── bev_analyzer.py        # BEV feature analysis
-│   ├── memory_profiler.py     # Memory profiling
-│   └── dtype_analyzer.py      # Data type analysis
-├── visualizers/            # Visualization modules
-│   ├── __init__.py
-│   └── mermaid_visualizer.py  # Mermaid diagram generation with dtype
-├── utils/                  # Utilities
-│   ├── __init__.py
-│   └── model_utils.py      # Model loading utilities
-├── examples/               # Example scripts
-├── tests/                  # Test suite
-├── trace_ops.py           # Main CLI script
-├── setup.py               # Package setup
-└── README.md              # This file
-```
+For complete documentation including:
+- **Full CLI Reference** with all options and examples
+- **Architecture Guide** with detailed component descriptions  
+- **Usage Examples** for common scenarios
+- **Troubleshooting Guide** for common issues
+- **Developer Guide** for contributing
 
-## Command Line Options
+**👉 See [INDEX.md](INDEX.md) for comprehensive documentation**
 
-### Model Configuration
-- `--config`: Path to UniAD config file (required)
-- `--checkpoint`: Path to model checkpoint
-- `--stage`: UniAD stage (1: perception, 2: end-to-end)
-- `--test-mode`: Run with dummy model for testing
+## 🚀 Examples
 
-### Tracing Options
-- `--task-heads`: Task heads to trace (default: all)
-- `--temporal-frames`: Number of temporal frames (default: 3)
-- `--trace-backward`: Trace backward pass
-- `--filter-ops`: Filter specific operations
-- `--max-nodes`: Maximum nodes to visualize (default: 50)
-
-### Shape and Data Type Options
-- `--show-shapes`: Show tensor shapes (default: True)
-- `--no-shapes`: Disable tensor shape display
-- `--shape-format`: Shape display format (full/compact/semantic)
-- `--show-dtype`: Show tensor data types (default: True)
-- `--no-dtype`: Disable data type display
-- `--track-dtype`: Track data type conversions
-- `--mixed-precision`: Simulate mixed precision (fp16/bf16/int8)
-- `--dtype-memory-analysis`: Analyze memory impact of different data types
-
-### Analysis Options
-- `--memory-profile`: Enable detailed memory profiling
-- `--bev-focus`: Focus analysis on BEV operations
-- `--visualize-temporal`: Visualize temporal flow
-
-### Output Options
-- `--output`: Output file path (default: trace_output.md)
-- `--export-json`: Export trace data as JSON
-- `--device`: Device to run on (cuda/cpu)
-
-## Usage Examples
-
-### Example 1: Trace UniAD Stage 2
 ```bash
+# Memory analysis for optimization
 pytorch-trace --config projects/configs/stage2_e2e/base_e2e.py \
-              --checkpoint ckpts/uniad_base_e2e.pth \
-              --stage 2 \
-              --task-heads track motion planning \
-              --memory-profile \
-              --output stage2_analysis.md
-```
+              --memory-profile --dtype-memory-analysis \
+              --output memory_analysis.md
 
-### Example 2: Focus on BEV Operations
-```bash
+# BEV operations deep dive  
 pytorch-trace --config projects/configs/stage2_e2e/base_e2e.py \
-              --checkpoint ckpts/uniad_base_e2e.pth \
-              --bev-focus \
-              --filter-ops BEVFormer BEVEncoder \
+              --bev-focus --visualize-temporal \
               --output bev_analysis.md
-```
 
-### Example 3: Analyze Data Type Memory Impact
-```bash
+# Mixed precision analysis
 pytorch-trace --config projects/configs/stage2_e2e/base_e2e.py \
-              --checkpoint ckpts/uniad_base_e2e.pth \
-              --dtype-memory-analysis \
-              --track-dtype \
-              --output dtype_analysis.md
-```
-
-### Example 4: Mixed Precision Analysis
-```bash
-pytorch-trace --config projects/configs/stage2_e2e/base_e2e.py \
-              --checkpoint ckpts/uniad_base_e2e.pth \
-              --mixed-precision fp16 \
-              --dtype-memory-analysis \
+              --mixed-precision fp16 --track-dtype \
               --output mixed_precision.md
 ```
 
-### Example 5: Export for Custom Analysis
+## 📊 UniAD Insights
+
+- **Memory Patterns**: Stage 1 (~50GB) vs Stage 2 (~17GB) analysis
+- **Task Head Analysis**: Track interactions across all 5 heads (track, seg, motion, occ, planning)
+- **Temporal Processing**: Multi-frame queue optimization (3-5 frames)
+- **BEV Operations**: Spatial transformation and feature flow analysis
+- **Mixed Precision**: Optimize memory usage with dtype analysis
+
+## 🤝 Contributing
+
 ```bash
-pytorch-trace --config projects/configs/stage2_e2e/base_e2e.py \
-              --checkpoint ckpts/uniad_base_e2e.pth \
-              --export-json \
-              --output trace_data.md
-
-# Analyze in Python
-import json
-import pandas as pd
-
-with open('trace_data.json') as f:
-    data = json.load(f)
-
-df = pd.DataFrame(data['nodes'])
-print(df.groupby('task_head')['memory_usage'].sum())
-```
-
-## Output Format
-
-The tool generates a comprehensive Markdown report containing:
-
-1. **Summary Statistics**: Total operations, memory usage, compute time
-2. **Task Head Analysis**: Memory and compute breakdown by task head
-3. **Dataflow Visualization**: Mermaid diagram with tensor shapes and dtypes (e.g., `[1,256,200,200]@fp16`)
-4. **Memory Heatmap**: Visual representation of memory consumers
-5. **Data Type Analysis**: Dtype distribution, conversions, and memory impact
-6. **Mixed Precision Opportunities**: Recommendations for memory optimization
-7. **JSON Export**: Detailed trace data for custom analysis
-
-## Data Type Support
-
-The tracer provides comprehensive data type analysis including:
-
-### Supported Data Types
-- **Floating Point**: fp32 (float32), fp16 (float16), bf16 (bfloat16), fp64 (float64)
-- **Integer**: int8, int16, int32, int64, uint8
-- **Other**: bool, complex64, complex128
-
-### Memory Impact Analysis
-| Data Type | Bytes per Element | Memory Reduction vs FP32 |
-|-----------|------------------|-------------------------|
-| float32   | 4                | 0% (baseline)           |
-| float16   | 2                | 50%                     |
-| bfloat16  | 2                | 50%                     |
-| int8      | 1                | 75%                     |
-
-### Mixed Precision Configurations
-Pre-defined configurations for UniAD optimization:
-
-1. **default**: All components use float32
-2. **mixed_precision**: Backbone/BEV in FP16, task heads in FP32
-3. **bfloat16**: Backbone/BEV in BF16, task heads in FP32
-4. **int8_quantized**: Backbone quantized to INT8, others in FP16/FP32
-
-### Visualization Examples
-- Tensor with shape only: `[1, 256, 200, 200]`
-- Tensor with dtype: `[1, 256, 200, 200]@fp16`
-- Compact format: `(1,256,200,200)@fp16`
-
-## Development
-
-### Running Tests
-```bash
-# Install dev dependencies
+# Development setup
+git clone https://github.com/OpenDriveLab/UniAD.git
+cd UniAD/tools/pytorch_op_tracer
 pip install -e ".[dev]"
-
-# Run tests
-pytest tests/
-
-# Run specific test
-python tests/test_tracer.py
+pytest tests/  # Run tests
 ```
 
-### Code Style
-```bash
-# Format code
-black pytorch_op_tracer/
+---
 
-# Check style
-flake8 pytorch_op_tracer/
-```
-
-## Troubleshooting
-
-### ImportError: mmdet3d not available
-- Install UniAD dependencies: `pip install -e ".[uniad]"`
-- Or use `--test-mode` for testing without UniAD
-
-### Out of Memory
-- Use `--filter-ops` to trace specific operations
-- Reduce `--max-nodes` for visualization
-- Run on CPU with `--device cpu`
-
-### Module Not Found
-- Ensure package is installed: `pip install -e .`
-- Or add to PYTHONPATH: `export PYTHONPATH=$PYTHONPATH:/path/to/pytorch_op_tracer`
-
-## Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
-
-## License
-
-This tool is part of the UniAD project and follows the same Apache 2.0 license.
+*Part of the [UniAD](https://github.com/OpenDriveLab/UniAD) autonomous driving framework*

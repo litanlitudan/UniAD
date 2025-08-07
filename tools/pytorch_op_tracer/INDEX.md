@@ -148,7 +148,8 @@ pytorch_op_tracer/
 │   ├── enhanced_profiler.py       # PyTorch Profiler integration
 │   ├── operation_decomposition.py # Low-level operation analysis
 │   ├── hierarchy_analyzer.py      # Module hierarchy detection
-│   └── visualization_state.py     # Visualization configuration
+│   ├── memory_structures.py       # Memory profiling structures
+│   └── visualization_config.py    # Visualization configuration
 ├── analyzers/                     # Analysis modules
 │   ├── trace_analyzer.py          # Main analysis coordinator
 │   ├── multi_head_analyzer.py     # UniAD task head analysis
@@ -157,13 +158,26 @@ pytorch_op_tracer/
 │   ├── memory_profiler.py        # Memory usage profiling
 │   └── dtype_analyzer.py         # Data type analysis
 ├── visualizers/                   # Visualization modules
-│   └── mermaid_visualizer.py      # Mermaid diagram generation
+│   ├── mermaid_visualizer.py      # Mermaid diagram generation
+│   ├── interactive_visualizer.py  # Interactive HTML visualizations
+│   ├── memory_timeline.py         # Memory timeline visualization
+│   └── task_head_comparator.py    # Task head comparison
+├── web/                          # Web interface components
+│   ├── templates/                 # HTML templates
+│   └── static/                    # CSS/JS assets
 ├── utils/                         # Utilities
-│   └── model_utils.py            # Model loading utilities
-└── tests/                         # Test suite
-    ├── test_tracer.py
-    ├── test_visualization.py
-    └── test_report_generation.py
+│   ├── model_utils.py            # Model loading utilities
+│   ├── export_manager.py         # Export functionality
+│   └── error_handler.py          # Error handling
+├── tests/                         # Comprehensive test suite
+│   ├── test_tracer.py
+│   ├── test_visualization.py
+│   └── test_*.py                  # Additional test modules
+├── examples/                      # Usage examples
+├── docs/                         # Additional documentation
+├── reports/                      # Generated analysis reports
+├── generate_reports.py           # Master report generator
+└── trace_ops.py                  # Main CLI entry point
 ```
 
 #### Data Flow Architecture
@@ -972,12 +986,15 @@ Each report follows a consistent structure:
 #### Report Generation
 ```bash
 # Generate all reports
-python regenerate_all_reports.py
+python generate_reports.py
 
-# Generate specific reports
-python generate_module_op_analysis.py      # Basic analysis
-python generate_enhanced_module_reports.py # Enhanced analysis
-python generate_comparison_standalone.py   # Comparison reports
+# Generate specific report types
+python generate_reports.py --type basic      # Basic analysis
+python generate_reports.py --type enhanced   # Enhanced analysis
+python generate_reports.py --type comparison # Comparison reports
+
+# Custom output directory
+python generate_reports.py --output-dir custom_reports/
 ```
 
 #### Reading Reports

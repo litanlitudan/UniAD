@@ -151,3 +151,4 @@ debug/
 
 core.*
 .aider*
+**/.spec-workflow/session.json

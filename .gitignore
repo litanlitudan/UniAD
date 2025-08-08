@@ -150,3 +150,5 @@ debug/
 *projs/
 
 core.*
+.aider*
+**/.spec-workflow/session.json

@@ -102,7 +102,7 @@ Implementation of the UniAD Model Analyzer tool through incremental development 
   - Purpose: Generate interactive dataflow visualizations
   - _Requirements: 5.1, 5.2_
 
-- [ ] 14. Implement HTML dashboard generator
+- [x] 14. Implement HTML dashboard generator
   - Files: tools/uniad_model_analyzer/visualizers/html_dashboard.py, templates/dashboard.html
   - Create HTMLDashboard class with generate_dashboard method
   - Add interactive charts and heatmaps

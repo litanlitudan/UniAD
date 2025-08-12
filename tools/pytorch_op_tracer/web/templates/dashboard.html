@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}} - UniAD Dashboard</title>
+    {{CSS_THEME}}
+    <style>
+        /* Custom CSS placeholder - will be replaced by template engine */
+        .dashboard-container {
+            display: grid;
+            grid-template-areas: 
+                "header header"
+                "sidebar main";
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: 80px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+        .dashboard-header {
+            grid-area: header;
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .dashboard-sidebar {
+            grid-area: sidebar;
+            background: var(--panel-bg);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .dashboard-main {
+            grid-area: main;
+            background: var(--bg-color);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .view-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .view-tab {
+            padding: 8px 16px;
+            background: var(--tab-bg);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .view-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        .view-content {
+            display: none;
+        }
+        .view-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>{{TITLE}}</h1>
+            <div>
+                <span>Generated: {{TIMESTAMP}}</span>
+            </div>
+        </div>
+        <div class="dashboard-sidebar">
+            <div class="view-tabs">
+                <button class="view-tab active" onclick="showView('dataflow')">Dataflow</button>
+                <button class="view-tab" onclick="showView('memory')">Memory</button>
+                <button class="view-tab" onclick="showView('analysis')">Analysis</button>
+            </div>
+        </div>
+        <div class="dashboard-main">
+            <div id="dataflow-view" class="view-content active">
+                <h2>Dataflow Visualization</h2>
+                <div id="dataflow-container"></div>
+            </div>
+            <div id="memory-view" class="view-content">
+                <h2>Memory Timeline</h2>
+                <div id="memory-container"></div>
+            </div>
+            <div id="analysis-view" class="view-content">
+                <h2>Analysis Results</h2>
+                <div id="analysis-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration and data will be injected by template engine
+        const CONFIG = /* {{CONFIG_JSON}} */ {};
+        const DATA = /* {{DATA_JSON}} */ {};
+        
+        // Custom JavaScript placeholder - will be replaced by template engine
+        /* {{CUSTOM_JS}} */
+        
+        function showView(viewName) {
+            // Hide all views
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Hide all tabs
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected view
+            document.getElementById(`${viewName}-view`).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

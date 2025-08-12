@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}{{TITLE}} - UniAD Dataflow Visualization{% endblock %}</title>
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://d3js.org https://cdn.jsdelivr.net https://cdn.plot.ly; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    
+    <!-- Theme CSS -->
+    {{CSS_THEME}}
+    
+    <!-- External Libraries -->
+    {% block cdn_libraries %}
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    {% endblock %}
+    
+    <!-- Interactive Components -->
+    {% block interactive_scripts %}
+    <script src="static/js/interactive.js"></script>
+    {% endblock %}
+    
+    <!-- Base Styles -->
+    <style>
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-color);
+            overflow-x: hidden;
+        }
+        
+        /* Layout Components */
+        .visualization-layout {
+            display: grid;
+            grid-template-areas: 
+                "header header header"
+                "nav sidebar main";
+            grid-template-columns: 60px 280px 1fr;
+            grid-template-rows: 70px 1fr;
+            height: 100vh;
+            min-height: 600px;
+        }
+        
+        .visualization-header {
+            grid-area: header;
+            background: linear-gradient(135deg, var(--primary-color), #4a90e2);
+            color: white;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .export-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+        
+        .export-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .export-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-top: 4px;
+            min-width: 150px;
+            z-index: 1000;
+        }
+        
+        .export-menu.active {
+            display: block;
+        }
+        
+        .export-option {
+            display: block;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .export-option:hover {
+            background: var(--hover-bg, #f8f9fa);
+        }
+        
+        .navigation-panel {
+            grid-area: nav;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 16px;
+        }
+        
+        .nav-item {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--nav-item-bg, transparent);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 18px;
+        }
+        
+        .nav-item:hover,
+        .nav-item.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .control-sidebar {
+            grid-area: sidebar;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 24px;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Control Panel Components */
+        .control-section {
+            margin-bottom: 28px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        
+        .control-header {
+            background: var(--section-header-bg, #f8f9fa);
+            padding: 14px 18px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .control-content {
+            padding: 18px;
+        }
+        
+        .filter-group {
+            margin-bottom: 20px;
+        }
+        
+        .filter-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        
+        .filter-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--input-bg, white);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb, 0, 123, 255), 0.2);
+        }
+        
+        .range-slider {
+            width: 100%;
+            margin: 8px 0;
+        }
+        
+        .range-value {
+            display: block;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        
+        .chip {
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .chip:hover {
+            background: var(--chip-hover-bg, #e0e0e0);
+        }
+        
+        .chip.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .control-buttons {
+            display: grid;
+            gap: 8px;
+        }
+        
+        .control-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .control-btn:hover {
+            background: var(--primary-dark, #0056b3);
+            transform: translateY(-1px);
+        }
+        
+        .control-btn.secondary {
+            background: var(--secondary-color, #6c757d);
+        }
+        
+        .control-btn.secondary:hover {
+            background: var(--secondary-dark, #545b62);
+        }
+        
+        /* Statistics Display */
+        .stats-grid {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        
+        /* Loading and Status */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: var(--tooltip-bg);
+            color: var(--tooltip-text);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            max-width: 320px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            line-height: 1.4;
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .visualization-layout {
+                grid-template-areas: 
+                    "header header"
+                    "main main";
+                grid-template-columns: 1fr;
+                grid-template-rows: 70px 1fr;
+            }
+            
+            .navigation-panel,
+            .control-sidebar {
+                display: none;
+            }
+            
+            .mobile-controls {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 100;
+            }
+            
+            .mobile-toggle {
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                font-size: 24px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 16px;
+            }
+            
+            .header-actions {
+                gap: 8px;
+            }
+            
+            .export-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Dark Theme Adjustments */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --hover-bg: #2d3748;
+                --section-header-bg: #2d3748;
+                --input-bg: #2d3748;
+                --chip-hover-bg: #4a5568;
+                --nav-item-bg: #2d3748;
+            }
+        }
+        
+        /*
+        Template block for additional styles:
+        {% block extra_styles %}{% endblock %}
+        */
+    </style>
+</head>
+<body>
+    <div class="visualization-layout">
+        <!-- Header -->
+        <header class="visualization-header">
+            <h1 class="header-title">{% block header_title %}{{TITLE}}{% endblock %}</h1>
+            <div class="header-actions">
+                <span class="timestamp">Generated: {{TIMESTAMP}}</span>
+                <div class="export-dropdown">
+                    <button class="export-btn" onclick="toggleExportMenu()" aria-label="Export options">
+                        ⬇ Export
+                    </button>
+                    <div class="export-menu" id="exportMenu">
+                        <button class="export-option" onclick="exportAs('svg')">Export as SVG</button>
+                        <button class="export-option" onclick="exportAs('png')">Export as PNG</button>
+                        <button class="export-option" onclick="exportAs('html')">Export as HTML</button>
+                        <button class="export-option" onclick="exportAs('json')">Export Data as JSON</button>
+                        {% block extra_export_options %}{% endblock %}
+                    </div>
+                </div>
+                {% block header_extra %}{% endblock %}
+            </div>
+        </header>
+        
+        <!-- Navigation Panel -->
+        <nav class="navigation-panel">
+            {% block navigation %}
+            <a href="#dataflow" class="nav-item active" data-view="dataflow" title="Dataflow View">
+                🔀
+            </a>
+            <a href="#memory" class="nav-item" data-view="memory" title="Memory Timeline">
+                📊
+            </a>
+            <a href="#analysis" class="nav-item" data-view="analysis" title="Analysis Results">
+                📈
+            </a>
+            {% endblock %}
+        </nav>
+        
+        <!-- Control Sidebar -->
+        <aside class="control-sidebar">
+            {% block controls %}
+            <div class="control-section">
+                <div class="control-header">Task Head Filters</div>
+                <div class="control-content">
+                    <div id="task-head-filters" class="chip-container">
+                        <!-- Task head chips will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header">Memory Threshold</div>
+                <div class="control-content">
+                    <input type="range" id="memory-threshold" class="range-slider" 
+                           min="0" max="10000" value="0" step="100">
+                    <span id="memory-threshold-value" class="range-value">0 MB</span>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header">Search & Filter</div>
+                <div class="control-content">
+                    <div class="filter-group">
+                        <label class="filter-label" for="search-input">Search Operations</label>
+                        <input type="text" id="search-input" class="filter-input" 
+                               placeholder="Enter operation name..." autocomplete="off">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="data-type-filter">Data Type Filter</label>
+                        <select id="data-type-filter" class="filter-input">
+                            <option value="">All Types</option>
+                            <option value="fp32">Float32</option>
+                            <option value="fp16">Float16</option>
+                            <option value="int8">Int8</option>
+                            <option value="bool">Boolean</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header">View Controls</div>
+                <div class="control-content">
+                    <div class="control-buttons">
+                        <button class="control-btn" onclick="resetView()" title="Reset zoom and pan">
+                            🔄 Reset View
+                        </button>
+                        <button class="control-btn" onclick="fitToScreen()" title="Fit visualization to screen">
+                            📐 Fit to Screen
+                        </button>
+                        <button class="control-btn secondary" onclick="toggleFullscreen()" title="Toggle fullscreen mode">
+                            ⛶ Fullscreen
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header">Statistics</div>
+                <div class="control-content">
+                    <div id="summary-stats" class="stats-grid">
+                        <!-- Statistics will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            {% endblock %}
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            {% block loading %}
+            <div id="loading-overlay" class="loading-overlay" style="display: none;">
+                <div class="loading-spinner"></div>
+                <div>Loading visualization...</div>
+            </div>
+            {% endblock %}
+            
+            {% block content %}
+            <div id="visualization-container" style="width: 100%; height: 100%;">
+                <!-- Visualization content will be injected here -->
+            </div>
+            {% endblock %}
+            
+            {% block tooltip %}
+            <div id="tooltip" class="tooltip"></div>
+            {% endblock %}
+        </main>
+        
+        <!-- Mobile Controls -->
+        <div class="mobile-controls" style="display: none;">
+            <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu">
+                ☰
+            </button>
+        </div>
+    </div>
+    
+    <!-- Utility Scripts -->
+    <script>
+        // Global configuration and data
+        // Configuration and data will be injected by template engine
+        const CONFIG = /* {{CONFIG_JSON}} */ {};
+        const DATA = /* {{DATA_JSON}} */ {};
+        const METADATA = /* {{METADATA_JSON}} */ {};
+        
+        // Base utility functions
+        const UniADBase = {
+            // Export functionality
+            exportAs: function(format) {
+                console.log(`Exporting as ${format}`);
+                switch(format) {
+                    case 'svg':
+                        this.exportSVG();
+                        break;
+                    case 'png':
+                        this.exportPNG();
+                        break;
+                    case 'html':
+                        this.exportHTML();
+                        break;
+                    case 'json':
+                        this.exportJSON();
+                        break;
+                }
+            },
+            
+            exportSVG: function() {
+                const svg = document.querySelector('svg');
+                if (svg) {
+                    const serializer = new XMLSerializer();
+                    const svgString = serializer.serializeToString(svg);
+                    this.downloadFile(svgString, `${CONFIG.title || 'visualization'}.svg`, 'image/svg+xml');
+                }
+            },
+            
+            exportPNG: function() {
+                const svg = document.querySelector('svg');
+                if (svg) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const data = new XMLSerializer().serializeToString(svg);
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        canvas.toBlob((blob) => {
+                            this.downloadBlob(blob, `${CONFIG.title || 'visualization'}.png`);
+                        });
+                    };
+                    
+                    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+                }
+            },
+            
+            exportHTML: function() {
+                const html = document.documentElement.outerHTML;
+                this.downloadFile(html, `${CONFIG.title || 'visualization'}.html`, 'text/html');
+            },
+            
+            exportJSON: function() {
+                const data = {
+                    config: CONFIG,
+                    data: DATA,
+                    metadata: METADATA,
+                    timestamp: new Date().toISOString()
+                };
+                this.downloadFile(JSON.stringify(data, null, 2), `${CONFIG.title || 'visualization'}_data.json`, 'application/json');
+            },
+            
+            downloadFile: function(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                this.downloadBlob(blob, filename);
+            },
+            
+            downloadBlob: function(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            },
+            
+            // Utility functions
+            formatNumber: function(num, decimals = 2) {
+                if (typeof num !== 'number') return '0';
+                return num.toFixed(decimals);
+            },
+            
+            formatBytes: function(bytes, decimals = 1) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
+            },
+            
+            formatDuration: function(ms) {
+                if (ms < 1000) return `${ms.toFixed(1)}ms`;
+                if (ms < 60000) return `${(ms/1000).toFixed(1)}s`;
+                return `${(ms/60000).toFixed(1)}m`;
+            },
+            
+            // Event handlers
+            showTooltip: function(event, content) {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.innerHTML = content;
+                    tooltip.style.left = (event.pageX + 10) + 'px';
+                    tooltip.style.top = (event.pageY - 10) + 'px';
+                    tooltip.classList.add('visible');
+                }
+            },
+            
+            hideTooltip: function() {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.classList.remove('visible');
+                }
+            },
+            
+            showLoading: function(show = true) {
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) {
+                    overlay.style.display = show ? 'flex' : 'none';
+                }
+            }
+        };
+        
+        // Global functions for template compatibility
+        function toggleExportMenu() {
+            const menu = document.getElementById('exportMenu');
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+        }
+        
+        function exportAs(format) {
+            UniADBase.exportAs(format);
+            toggleExportMenu(); // Close menu after export
+        }
+        
+        function resetView() {
+            if (typeof resetVisualization === 'function') {
+                resetVisualization();
+            }
+        }
+        
+        function fitToScreen() {
+            if (typeof fitVisualizationToScreen === 'function') {
+                fitVisualizationToScreen();
+            }
+        }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        function toggleMobileMenu() {
+            // Mobile menu implementation
+            console.log('Toggle mobile menu');
+        }
+        
+        // Navigation handling
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize navigation
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Update active state
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Switch views
+                    const viewName = this.dataset.view;
+                    if (typeof switchView === 'function') {
+                        switchView(viewName);
+                    }
+                });
+            });
+            
+            // Close export menu when clicking outside
+            document.addEventListener('click', function(e) {
+                const exportDropdown = document.querySelector('.export-dropdown');
+                const exportMenu = document.getElementById('exportMenu');
+                
+                if (exportDropdown && exportMenu && !exportDropdown.contains(e.target)) {
+                    exportMenu.classList.remove('active');
+                }
+            });
+            
+            // Initialize responsive design
+            function checkResponsive() {
+                const mobileControls = document.querySelector('.mobile-controls');
+                const isMobile = window.innerWidth <= 1024;
+                
+                if (mobileControls) {
+                    mobileControls.style.display = isMobile ? 'block' : 'none';
+                }
+            }
+            
+            checkResponsive();
+            window.addEventListener('resize', checkResponsive);
+            
+            // Initialize filter controls
+            initializeFilters();
+        });
+        
+        function initializeFilters() {
+            // Memory threshold slider
+            const memoryThreshold = document.getElementById('memory-threshold');
+            const memoryValue = document.getElementById('memory-threshold-value');
+            
+            if (memoryThreshold && memoryValue) {
+                memoryThreshold.addEventListener('input', function() {
+                    memoryValue.textContent = `${this.value} MB`;
+                    if (typeof applyFilters === 'function') {
+                        applyFilters();
+                    }
+                });
+            }
+            
+            // Search input
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        if (typeof applyFilters === 'function') {
+                            applyFilters();
+                        }
+                    }, 300);
+                });
+            }
+            
+            // Data type filter
+            const dataTypeFilter = document.getElementById('data-type-filter');
+            if (dataTypeFilter) {
+                dataTypeFilter.addEventListener('change', function() {
+                    if (typeof applyFilters === 'function') {
+                        applyFilters();
+                    }
+                });
+            }
+        }
+        
+        /* Template block for additional JavaScript */
+        // {% block javascript %}{% endblock %}
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,1084 @@
+{
+  "model": "UniAD Stage 2",
+  "nodes": [
+    {
+      "id": 0,
+      "name": "MultiCameraInput",
+      "op_type": "Identity",
+      "shape": "[1, 6, 3, 928, 1600]",
+      "subgraph": "Input",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 1,
+      "name": "ResNet_Stage1_Conv",
+      "op_type": "Conv",
+      "shape": "[1, 64, H, W]",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 2,
+      "name": "ResNet_Stage1_BN",
+      "op_type": "BatchNormalization",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 3,
+      "name": "ResNet_Stage1_ReLU",
+      "op_type": "Relu",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 4,
+      "name": "ResNet_Stage2_Conv",
+      "op_type": "Conv",
+      "shape": "[1, 128, H, W]",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 5,
+      "name": "ResNet_Stage2_BN",
+      "op_type": "BatchNormalization",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 6,
+      "name": "ResNet_Stage2_ReLU",
+      "op_type": "Relu",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 7,
+      "name": "ResNet_Stage3_Conv",
+      "op_type": "DeformableConv",
+      "shape": "[1, 256, H, W]",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 8,
+      "name": "ResNet_Stage3_BN",
+      "op_type": "BatchNormalization",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 9,
+      "name": "ResNet_Stage3_ReLU",
+      "op_type": "Relu",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 10,
+      "name": "ResNet_Stage4_Conv",
+      "op_type": "DeformableConv",
+      "shape": "[1, 512, H, W]",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 11,
+      "name": "ResNet_Stage4_BN",
+      "op_type": "BatchNormalization",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 12,
+      "name": "ResNet_Stage4_ReLU",
+      "op_type": "Relu",
+      "shape": "",
+      "subgraph": "Backbone",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 13,
+      "name": "FPN_1x1Conv",
+      "op_type": "Conv",
+      "shape": "[1, 256, H, W]",
+      "subgraph": "FPN",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 14,
+      "name": "FPN_Output",
+      "op_type": "Concat",
+      "shape": "[1, 256, H, W]",
+      "subgraph": "FPN",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 15,
+      "name": "BEV_PositionalEncoding",
+      "op_type": "LearnedPositionalEncoding",
+      "shape": "[200, 200, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 16,
+      "name": "BEV_Layer0_TemporalAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 17,
+      "name": "BEV_Layer0_SpatialAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 18,
+      "name": "BEV_Layer0_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 40000, 512]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 19,
+      "name": "BEV_Layer0_LayerNorm",
+      "op_type": "LayerNormalization",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 20,
+      "name": "BEV_Layer1_TemporalAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 21,
+      "name": "BEV_Layer1_SpatialAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 22,
+      "name": "BEV_Layer1_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 40000, 512]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 23,
+      "name": "BEV_Layer1_LayerNorm",
+      "op_type": "LayerNormalization",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 24,
+      "name": "BEV_Layer2_TemporalAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 25,
+      "name": "BEV_Layer2_SpatialAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 26,
+      "name": "BEV_Layer2_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 40000, 512]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 27,
+      "name": "BEV_Layer2_LayerNorm",
+      "op_type": "LayerNormalization",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 28,
+      "name": "BEV_Layer3_TemporalAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 29,
+      "name": "BEV_Layer3_SpatialAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 30,
+      "name": "BEV_Layer3_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 40000, 512]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 31,
+      "name": "BEV_Layer3_LayerNorm",
+      "op_type": "LayerNormalization",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 32,
+      "name": "BEV_Layer4_TemporalAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 33,
+      "name": "BEV_Layer4_SpatialAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 34,
+      "name": "BEV_Layer4_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 40000, 512]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 35,
+      "name": "BEV_Layer4_LayerNorm",
+      "op_type": "LayerNormalization",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 36,
+      "name": "BEV_Layer5_TemporalAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 37,
+      "name": "BEV_Layer5_SpatialAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 38,
+      "name": "BEV_Layer5_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 40000, 512]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 39,
+      "name": "BEV_Layer5_LayerNorm",
+      "op_type": "LayerNormalization",
+      "shape": "[1, 40000, 256]",
+      "subgraph": "BEVFormer",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 40,
+      "name": "QueryEmbedding",
+      "op_type": "Embedding",
+      "shape": "[900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 41,
+      "name": "Decoder_Layer0_SelfAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 42,
+      "name": "Decoder_Layer0_CrossAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 43,
+      "name": "Decoder_Layer0_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 512]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 44,
+      "name": "Decoder_Layer1_SelfAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 45,
+      "name": "Decoder_Layer1_CrossAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 46,
+      "name": "Decoder_Layer1_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 512]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 47,
+      "name": "Decoder_Layer2_SelfAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 48,
+      "name": "Decoder_Layer2_CrossAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 49,
+      "name": "Decoder_Layer2_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 512]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 50,
+      "name": "Decoder_Layer3_SelfAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 51,
+      "name": "Decoder_Layer3_CrossAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 52,
+      "name": "Decoder_Layer3_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 512]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 53,
+      "name": "Decoder_Layer4_SelfAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 54,
+      "name": "Decoder_Layer4_CrossAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 55,
+      "name": "Decoder_Layer4_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 512]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 56,
+      "name": "Decoder_Layer5_SelfAttn",
+      "op_type": "MultiHeadAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 57,
+      "name": "Decoder_Layer5_CrossAttn",
+      "op_type": "DeformableAttention",
+      "shape": "[1, 900, 256]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 58,
+      "name": "Decoder_Layer5_FFN",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 512]",
+      "subgraph": "Decoder",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 59,
+      "name": "Track_Classification",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 10]",
+      "subgraph": "TrackHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 60,
+      "name": "Track_Regression",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 10]",
+      "subgraph": "TrackHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 61,
+      "name": "Seg_Conv",
+      "op_type": "Conv",
+      "shape": "[1, 3, 200, 200]",
+      "subgraph": "SegHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 62,
+      "name": "Motion_LSTM",
+      "op_type": "LSTM",
+      "shape": "[1, 900, 256]",
+      "subgraph": "MotionHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 63,
+      "name": "Motion_Output",
+      "op_type": "Gemm",
+      "shape": "[1, 900, 72]",
+      "subgraph": "MotionHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 64,
+      "name": "Occ_Conv3D",
+      "op_type": "Conv",
+      "shape": "[1, 1, 200, 200, 16]",
+      "subgraph": "OccHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 65,
+      "name": "Plan_Concat",
+      "op_type": "Concat",
+      "shape": "[1, 768]",
+      "subgraph": "PlanningHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 66,
+      "name": "Plan_GRU",
+      "op_type": "GRU",
+      "shape": "[1, 6, 256]",
+      "subgraph": "PlanningHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    },
+    {
+      "id": 67,
+      "name": "Plan_Output",
+      "op_type": "Gemm",
+      "shape": "[1, 6, 2]",
+      "subgraph": "PlanningHead",
+      "module_path": "",
+      "pytorch_op": "",
+      "task_head": null
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "label": ""
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "label": ""
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": ""
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": ""
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "label": ""
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "label": ""
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "label": ""
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "label": ""
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "label": ""
+    },
+    {
+      "from": 9,
+      "to": 10,
+      "label": ""
+    },
+    {
+      "from": 10,
+      "to": 11,
+      "label": ""
+    },
+    {
+      "from": 11,
+      "to": 12,
+      "label": ""
+    },
+    {
+      "from": 12,
+      "to": 13,
+      "label": ""
+    },
+    {
+      "from": 13,
+      "to": 14,
+      "label": ""
+    },
+    {
+      "from": 14,
+      "to": 15,
+      "label": ""
+    },
+    {
+      "from": 15,
+      "to": 16,
+      "label": ""
+    },
+    {
+      "from": 16,
+      "to": 17,
+      "label": ""
+    },
+    {
+      "from": 17,
+      "to": 18,
+      "label": ""
+    },
+    {
+      "from": 18,
+      "to": 19,
+      "label": ""
+    },
+    {
+      "from": 19,
+      "to": 20,
+      "label": ""
+    },
+    {
+      "from": 20,
+      "to": 21,
+      "label": ""
+    },
+    {
+      "from": 21,
+      "to": 22,
+      "label": ""
+    },
+    {
+      "from": 22,
+      "to": 23,
+      "label": ""
+    },
+    {
+      "from": 23,
+      "to": 24,
+      "label": ""
+    },
+    {
+      "from": 24,
+      "to": 25,
+      "label": ""
+    },
+    {
+      "from": 25,
+      "to": 26,
+      "label": ""
+    },
+    {
+      "from": 26,
+      "to": 27,
+      "label": ""
+    },
+    {
+      "from": 27,
+      "to": 28,
+      "label": ""
+    },
+    {
+      "from": 28,
+      "to": 29,
+      "label": ""
+    },
+    {
+      "from": 29,
+      "to": 30,
+      "label": ""
+    },
+    {
+      "from": 30,
+      "to": 31,
+      "label": ""
+    },
+    {
+      "from": 31,
+      "to": 32,
+      "label": ""
+    },
+    {
+      "from": 32,
+      "to": 33,
+      "label": ""
+    },
+    {
+      "from": 33,
+      "to": 34,
+      "label": ""
+    },
+    {
+      "from": 34,
+      "to": 35,
+      "label": ""
+    },
+    {
+      "from": 35,
+      "to": 36,
+      "label": ""
+    },
+    {
+      "from": 36,
+      "to": 37,
+      "label": ""
+    },
+    {
+      "from": 37,
+      "to": 38,
+      "label": ""
+    },
+    {
+      "from": 38,
+      "to": 39,
+      "label": ""
+    },
+    {
+      "from": 40,
+      "to": 41,
+      "label": ""
+    },
+    {
+      "from": 41,
+      "to": 42,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 42,
+      "label": ""
+    },
+    {
+      "from": 42,
+      "to": 43,
+      "label": ""
+    },
+    {
+      "from": 43,
+      "to": 44,
+      "label": ""
+    },
+    {
+      "from": 44,
+      "to": 45,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 45,
+      "label": ""
+    },
+    {
+      "from": 45,
+      "to": 46,
+      "label": ""
+    },
+    {
+      "from": 46,
+      "to": 47,
+      "label": ""
+    },
+    {
+      "from": 47,
+      "to": 48,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 48,
+      "label": ""
+    },
+    {
+      "from": 48,
+      "to": 49,
+      "label": ""
+    },
+    {
+      "from": 49,
+      "to": 50,
+      "label": ""
+    },
+    {
+      "from": 50,
+      "to": 51,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 51,
+      "label": ""
+    },
+    {
+      "from": 51,
+      "to": 52,
+      "label": ""
+    },
+    {
+      "from": 52,
+      "to": 53,
+      "label": ""
+    },
+    {
+      "from": 53,
+      "to": 54,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 54,
+      "label": ""
+    },
+    {
+      "from": 54,
+      "to": 55,
+      "label": ""
+    },
+    {
+      "from": 55,
+      "to": 56,
+      "label": ""
+    },
+    {
+      "from": 56,
+      "to": 57,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 57,
+      "label": ""
+    },
+    {
+      "from": 57,
+      "to": 58,
+      "label": ""
+    },
+    {
+      "from": 58,
+      "to": 59,
+      "label": ""
+    },
+    {
+      "from": 58,
+      "to": 60,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 61,
+      "label": ""
+    },
+    {
+      "from": 58,
+      "to": 62,
+      "label": ""
+    },
+    {
+      "from": 62,
+      "to": 63,
+      "label": ""
+    },
+    {
+      "from": 39,
+      "to": 64,
+      "label": ""
+    },
+    {
+      "from": 58,
+      "to": 65,
+      "label": ""
+    },
+    {
+      "from": 63,
+      "to": 65,
+      "label": ""
+    },
+    {
+      "from": 64,
+      "to": 65,
+      "label": ""
+    },
+    {
+      "from": 65,
+      "to": 66,
+      "label": ""
+    },
+    {
+      "from": 66,
+      "to": 67,
+      "label": ""
+    }
+  ],
+  "op_counts": {
+    "Conv": 7,
+    "BatchNormalization": 4,
+    "Relu": 4,
+    "DeformableConv": 2,
+    "Concat": 2,
+    "MultiHeadAttention": 12,
+    "DeformableAttention": 12,
+    "Gemm": 28,
+    "LayerNormalization": 18,
+    "LSTM": 1,
+    "GRU": 1
+  },
+  "total_nodes": 68,
+  "total_edges": 74,
+  "components": [
+    "BEVFormer",
+    "Backbone",
+    "SegHead",
+    "PlanningHead",
+    "Decoder",
+    "OccHead",
+    "MotionHead",
+    "Input",
+    "FPN",
+    "TrackHead"
+  ]
+}
